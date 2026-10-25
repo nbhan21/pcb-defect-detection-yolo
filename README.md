@@ -93,6 +93,8 @@ Model menilai tampilan visual, bukan kontinuitas listrik, multilayer PCB, solder
 
 Input dibatasi JPEG/PNG, 10 MiB, dan 25 megapiksel. Server memproses hasil dalam memori request; browser menyediakan unduhan. File sementara framework berada di D: melalui launcher.
 
+Lokasi unduhan PNG/CSV mengikuti pengaturan browser, terpisah dari TEMP/cache server. Atur folder unduhan browser ke D: agar file ekspor juga tersimpan di sana.
+
 ## Atribusi dan redistribusi
 
 Dataset Kaggle mengatribusikan sumber kepada R. Ding, L. Dai, G. Li dan H. Liu, *TDD-Net: A Tiny Defect Detection Network for Printed Circuit Boards*, 2019, DOI [10.1049/trit.2019.0019](https://doi.org/10.1049/trit.2019.0019). [Repositori terkait](https://github.com/Ixiaohuihuihui/Tiny-Defect-Detection-for-PCB) menjelaskan augmentasi dan pembuatan cacat sintetis.

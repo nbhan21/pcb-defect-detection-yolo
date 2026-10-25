@@ -5,7 +5,7 @@ const CLASS_NAMES = ['mouse_bite', 'spur', 'missing_hole', 'short', 'open_circui
 const MAX_BYTES = 10 * 1024 * 1024;
 const MAX_PIXELS = 25_000_000;
 const gate = createRequestGate();
-const state = { file: null, originalUrl: null, resultUrls: [], previewReady: false, modelReady: false, busy: false, controller: null, confidenceTouched: false, healthBusy: false };
+const state = { file: null, originalUrl: null, resultUrls: [], previewReady: false, modelReady: false, modelCheckpoint: null, busy: false, controller: null, confidenceTouched: false, healthBusy: false };
 
 function message(text, kind = '') {
   $('result-message-text').textContent = text;
@@ -109,7 +109,12 @@ async function checkHealth() {
     const response = await fetch('/api/health', { cache: 'no-store' });
     const data = await response.json();
     const wasReady = state.modelReady;
+    const previousCheckpoint = state.modelCheckpoint;
     state.modelReady = response.ok && data.ready === true;
+    state.modelCheckpoint = state.modelReady ? data.model?.checkpoint_sha256 ?? null : null;
+    if (previousCheckpoint && state.modelCheckpoint && previousCheckpoint !== state.modelCheckpoint) {
+      clearResults('Checkpoint berubah. Jalankan inspeksi kembali untuk memperbarui hasil.');
+    }
     $('model-pill-text').textContent = state.modelReady ? 'MODEL SIAP' : 'MODEL BELUM SIAP';
     $('model-pill').className = `status-pill${state.modelReady ? ' ready' : ''}`;
     $('model-notice').className = `model-notice ${state.modelReady ? 'ready' : 'warning'}`;
@@ -126,6 +131,7 @@ async function checkHealth() {
     if (wasReady && !state.modelReady) clearResults('Model belum siap. Periksa status sebelum menjalankan inspeksi kembali.');
   } catch {
     state.modelReady = false;
+    state.modelCheckpoint = null;
     $('model-pill-text').textContent = 'KONEKSI TERPUTUS'; $('model-pill').className = 'status-pill';
     $('model-notice').className = 'model-notice warning';
     $('model-notice-title').textContent = 'Status model tidak dapat diperiksa';
@@ -178,6 +184,10 @@ async function inspect(event) {
       throw new Error(formatApiError(data));
     }
     if (!Array.isArray(data.detections) || typeof data.annotated_image !== 'string' || !data.annotated_image.startsWith('data:image/png;base64,')) throw new Error('Format hasil inspeksi belum sesuai. Periksa aplikasi dan coba lagi.');
+    if (data.model?.checkpoint_sha256 !== state.modelCheckpoint) {
+      void checkHealth();
+      throw new Error('Checkpoint berubah. Cek model dan jalankan inspeksi kembali.');
+    }
     const imageBlob = await (await fetch(data.annotated_image, { signal: controller.signal })).blob();
     if (!gate.isCurrent(token)) return;
     const imageUrl = URL.createObjectURL(imageBlob);

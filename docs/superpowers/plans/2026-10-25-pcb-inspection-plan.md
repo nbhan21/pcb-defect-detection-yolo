@@ -59,7 +59,7 @@ This JSON is a schema illustration, not an actual model result. `bbox_xyxy` uses
 
 - [x] Create `.gitignore` before initializing Git, connect the existing public repo, and commit only source/documentation/configuration.
 - [x] Write project-scoped environment configuration for TEMP/TMP/TMPDIR, UV/PIP/Torch/YOLO/matplotlib/XDG caches and outputs. Reuse the D: base Python and D: uv tool; create a new `.venv`.
-- [ ] Verify available package versions, install a compatible single CUDA build (initial candidate torch 2.5.1 cu121 + torchvision 0.20.1), then freeze resolved versions after GPU verification. Do not install a CUDA toolkit or update drivers.
+- [x] Verify available package versions, install a compatible single CUDA build (initial candidate torch 2.5.1 cu121 + torchvision 0.20.1), then freeze resolved versions after GPU verification. Do not install a CUDA toolkit or update drivers.
 - [x] Write failing tests for `_256`→`_600` bijection, invalid/ambiguous labels, normalized geometry, deterministic family splits, class coverage, and duplicate supergroups.
 - [x] Run `.venv/Scripts/python.exe -m pytest tests/test_data.py -q` and confirm RED before implementing data functions.
 - [x] Implement validated preparation. Record raw pair mapping, source family, image hash, output split and annotation counts. Check exact duplicate image bytes across families and merge connected groups before split. Fail clearly on unrecognized family or unresolved pair.
@@ -73,8 +73,8 @@ This JSON is a schema illustration, not an actual model result. `bbox_xyxy` uses
 **Interfaces:** CLI training/evaluation scripts read the prepared YAML. Promotion produces `models/pcb-best.pt` and `models/model-metadata.json` with `name`, `checkpoint_sha256`, `class_names`, `default_confidence`, model provenance, split hash, configuration and actual validation/test metrics.
 
 - [x] Write failing configuration tests to prohibit test-as-validation and verify class order, provenance and split integrity; implement wrappers and run GREEN.
-- [ ] Download trusted `yolo11n.pt` to D:. Verify torch version/CUDA/device and record driver/VRAM.
-- [ ] Run one-epoch smoke training on a small representative train subset, with validation subset, image size 640 and candidate batch 4. On CUDA OOM retry batch 2 then 1, cleaning the failed model/process before retry. If GPU fails for other reasons, diagnose rather than silently starting a long CPU training.
+- [x] Download trusted `yolo11n.pt` to D:. Verify torch version/CUDA/device and record driver/VRAM.
+- [x] Run one-epoch smoke training on a small representative train subset, with validation subset, image size 640 and candidate batch 4. On CUDA OOM retry batch 2 then 1, cleaning the failed model/process before retry. If GPU fails for other reasons, diagnose rather than silently starting a long CPU training.
 - [ ] Baseline: selected smoke-test batch, image size 640, at most 40 epochs, early stopping patience 8, optimizer AdamW with lr0 0.001, cache false, workers 0, AMP when capability check passes, seed 42, all trainable layers. Set an independent one-hour epoch-boundary budget without changing the epoch scheduler; allow one epoch plus final validation of overrun (not a duration/performance promise). Use modest lighting augmentation, mosaic/mixup/cutmix disabled and no additional geometry that could cut tiny defects.
 - [ ] Log training to D: and report actual progress while it runs. Select best checkpoint using validation.
 - [ ] On validation only, choose confidence from 0.10–0.70 in increments of 0.05 by aggregate F1, preferring the higher recall candidate on ties, then the higher precision candidate. Keep NMS IoU 0.50 and record this choice.
@@ -109,7 +109,7 @@ This JSON is a schema illustration, not an actual model result. `bbox_xyxy` uses
 **Files:** `README.md`, `docs/learning-guide.md`, aggregate `reports/evaluation.json` and `reports/implementation-status.md`, relevant tests above.
 
 - [ ] Integrate components using an actual trained checkpoint, verify readiness and a real image response. Never substitute fabricated detections for this gate.
-- [ ] Run the full pytest suite and Node tests. Launch the local app and test upload-to-render through browser automation, actual PNG/CSV downloads, a bad file, zero-detection state, repeated file selection, and narrow layout.
+- [ ] Run the full pytest suite and Node tests. Launch the local app and test upload-to-render through browser automation, CSV download and PNG payload/link verification (keep artifacts on D; browser download-folder setting is separate), a bad file, zero-detection state, repeated file selection, and narrow layout.
 - [ ] Inspect screenshot at desktop and narrow width; fix concrete usability/layout problems, then rerun the affected path only.
 - [ ] Write README commands for setup, prepare, train, evaluate and run; add flow diagram, data/model attribution, actual metrics and limitations. Explain the frontend request, API validation, model output, rendering and downloads in `docs/learning-guide.md`.
 - [ ] Verify staged files exclude raw data, ZIP, environment, caches, credentials, weights, and source-derived images. Commit and push source/docs to the already-authorized public repo.
