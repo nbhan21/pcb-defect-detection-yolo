@@ -1,0 +1,37 @@
+{
+  "images": 10668,
+  "boxes": 21664,
+  "renamed_labels": 2667,
+  "seed": 42,
+  "manifest_sha256": "abfc7d656f295edd77afa74502fd504a20fdf44f52fc86007194dc41065f5327",
+  "family_split": {
+    "light_10": "train",
+    "light_06": "train",
+    "light_05": "train",
+    "light_11": "train",
+    "light_08": "train",
+    "light_09": "train",
+    "light_12": "val",
+    "light_07": "val",
+    "light_01": "test",
+    "light_04": "test"
+  },
+  "split_counts": {
+    "test": 2700,
+    "train": 5856,
+    "val": 2112
+  },
+  "link_counts": {
+    "copy": 10668
+  },
+  "class_names": [
+    "mouse_bite",
+    "spur",
+    "missing_hole",
+    "short",
+    "open_circuit",
+    "spurious_copper"
+  ],
+  "original_split_not_used_for_evaluation": true,
+  "cross_split_duplicate_hashes": 0
+}

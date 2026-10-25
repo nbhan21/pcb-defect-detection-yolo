@@ -1,0 +1,113 @@
+<!doctype html>
+<html lang="id">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="light">
+  <meta name="description" content="Asisten inspeksi visual PCB polos. Tinjau lokasi dan jenis cacat menggunakan model YOLO yang di-fine-tune.">
+  <title>PCB Inspect — Inspeksi Visual</title>
+  <link rel="stylesheet" href="/styles.css">
+  <script type="module" src="/app.js"></script>
+</head>
+<body>
+  <a class="skip-link" href="#inspection">Langsung ke inspeksi</a>
+  <header class="topbar">
+    <a class="brand" href="/" aria-label="PCB Inspect, halaman utama">
+      <span class="brand-mark" aria-hidden="true"><svg viewBox="0 0 32 32" fill="none"><path d="M7 7h9v9h9M7 25h9V16M7 7v18"/><path d="M3 7h8M3 25h8M25 12v8M12 3v8"/><rect x="12" y="12" width="8" height="8"/></svg></span>
+      <span>PCB<span class="brand-divider">/</span>INSPECT</span>
+    </a>
+    <div class="topbar-right">
+      <span class="workspace-label">LOCAL WORKSPACE</span>
+      <span class="status-pill" id="model-pill"><span class="status-dot" aria-hidden="true"></span><span id="model-pill-text">MEMERIKSA MODEL</span></span>
+    </div>
+  </header>
+
+  <main class="shell">
+    <section class="intro" aria-labelledby="page-title">
+      <div class="intro-copy">
+        <p class="eyebrow"><span class="square" aria-hidden="true"></span> ASISTEN INSPEKSI VISUAL</p>
+        <h1 id="page-title">DETAIL KECIL.<br><span>PERIKSA LEBIH JELAS.</span></h1>
+        <p class="intro-description">Tinjau lokasi dan jenis cacat pada jalur PCB polos. Unggah satu gambar, lalu periksa hasil deteksi sebelum mengambil keputusan.</p>
+      </div>
+      <div class="scope-card">
+        <span class="micro-label">LINGKUP MODEL</span>
+        <strong>06<span>KELAS CACAT</span></strong>
+        <p>PCB polos · Gambar statis<br>Hasil dapat diunduh</p>
+        <span class="scope-cross" aria-hidden="true">+</span>
+      </div>
+    </section>
+
+    <div class="model-notice" id="model-notice" role="status" aria-live="polite">
+      <div><strong id="model-notice-title">Memeriksa checkpoint model</strong><p id="model-notice-description">Status kesiapan model akan tampil di sini.</p></div>
+      <button class="text-button" id="refresh-health" type="button">Cek model <span aria-hidden="true">↻</span></button>
+    </div>
+
+    <section class="inspection-layout" id="inspection" aria-label="Ruang inspeksi">
+      <aside class="control-panel panel">
+        <div class="panel-heading"><span class="step-number">01</span><h2>INPUT INSPEKSI</h2></div>
+        <form id="inspect-form" novalidate>
+          <div class="upload-zone" id="drop-zone">
+            <input class="file-input" id="image-file" name="image" type="file" accept="image/jpeg,image/png,.jpg,.jpeg,.png" aria-describedby="upload-help">
+            <label for="image-file" class="upload-label">
+              <span class="upload-icon" aria-hidden="true"><svg viewBox="0 0 48 48" fill="none"><path d="M24 32V9m-9 9 9-9 9 9M10 30v10h28V30"/></svg></span>
+              <strong>PILIH GAMBAR PCB</strong>
+              <span>atau letakkan file di area ini</span>
+              <span class="file-types" id="upload-help">JPG / PNG · MAKS. 10 MiB · 25 MP</span>
+            </label>
+          </div>
+          <div class="file-details" id="file-details" hidden>
+            <span class="file-symbol" aria-hidden="true">IMG</span>
+            <div><strong id="file-name"></strong><span id="file-meta"></span></div>
+            <button class="remove-file" id="remove-file" type="button" aria-label="Hapus gambar yang dipilih">×</button>
+          </div>
+          <div class="parameter-block">
+            <div class="parameter-heading"><label for="confidence">BATAS CONFIDENCE</label><output for="confidence" id="confidence-value">25%</output></div>
+            <input id="confidence" name="confidence" type="range" min="0.05" max="0.95" step="0.05" value="0.25" aria-describedby="confidence-help">
+            <div class="range-labels" aria-hidden="true"><span>LEBIH SENSITIF</span><span>LEBIH SELEKTIF</span></div>
+            <p id="confidence-help">Batas lebih rendah menampilkan lebih banyak kandidat, termasuk kemungkinan deteksi keliru.</p>
+          </div>
+          <button id="inspect-button" class="primary-button" type="submit" disabled><span id="inspect-button-label">JALANKAN INSPEKSI</span><span id="inspect-button-icon" aria-hidden="true">↗</span></button>
+          <p class="control-hint" id="control-hint">Pilih gambar dan pastikan model siap.</p>
+        </form>
+        <div class="model-details">
+          <span class="micro-label">MODEL AKTIF</span>
+          <strong id="model-name">Belum tersedia</strong>
+          <dl><div><dt>DEVICE</dt><dd id="model-device">—</dd></div><div><dt>CHECKPOINT</dt><dd id="model-checkpoint">—</dd></div></dl>
+        </div>
+      </aside>
+
+      <section class="result-panel panel" aria-labelledby="result-heading">
+        <div class="panel-heading result-heading"><div><span class="step-number">02</span><h2 id="result-heading">RUANG TINJAU</h2></div><span class="view-label" id="view-label">MENUNGGU GAMBAR</span></div>
+        <div class="preview-tabs" role="tablist" aria-label="Tampilan gambar">
+          <button class="preview-tab" id="tab-original" type="button" role="tab" aria-selected="true" aria-controls="pane-original">GAMBAR ASLI</button>
+          <button class="preview-tab" id="tab-result" type="button" role="tab" aria-selected="false" aria-controls="pane-result" disabled tabindex="-1">HASIL DETEKSI</button>
+          <span class="image-dimensions" id="image-dimensions">— × — PX</span>
+        </div>
+        <div class="preview-stage" id="preview-stage" aria-busy="false">
+          <div id="pane-original" role="tabpanel" aria-labelledby="tab-original">
+            <div class="empty-preview" id="empty-original"><span class="empty-cross" aria-hidden="true">+</span><p>AREA GAMBAR PCB</p><span>Preview muncul setelah gambar dipilih.</span></div>
+            <img id="original-image" alt="Gambar PCB asli yang dipilih untuk inspeksi" hidden>
+          </div>
+          <div id="pane-result" role="tabpanel" aria-labelledby="tab-result" hidden><img id="result-image" alt="Hasil inspeksi PCB dengan bounding boxes dan label cacat"></div>
+          <div class="processing-overlay" id="processing-overlay" hidden><span class="spinner" aria-hidden="true"></span><strong>MEMPROSES GAMBAR</strong><span>Model sedang mencari kandidat cacat.</span></div>
+        </div>
+        <div class="result-message" id="result-message" role="status" aria-live="polite"><span class="message-icon" aria-hidden="true">↳</span><p id="result-message-text">Hasil deteksi akan muncul setelah inspeksi dijalankan.</p></div>
+        <div class="metrics-row" aria-label="Ringkasan inspeksi">
+          <div><span class="micro-label">TOTAL TEMUAN</span><strong id="total-detections">—</strong><span>kandidat cacat</span></div>
+          <div><span class="micro-label">WAKTU INFERENCE</span><strong id="inference-time">—</strong><span>milidetik</span></div>
+          <div><span class="micro-label">CONFIDENCE DIGUNAKAN</span><strong id="applied-confidence">—</strong><span>batas skor model</span></div>
+        </div>
+      </section>
+    </section>
+
+    <section class="findings-section panel" aria-labelledby="findings-heading">
+      <div class="panel-heading findings-heading"><div><span class="step-number">03</span><h2 id="findings-heading">DETAIL TEMUAN</h2></div><div class="download-actions"><a class="secondary-button" id="download-png" aria-disabled="true" tabindex="-1">UNDUH PNG <span aria-hidden="true">↓</span></a><a class="secondary-button" id="download-csv" aria-disabled="true" tabindex="-1">UNDUH CSV <span aria-hidden="true">↓</span></a></div></div>
+      <div class="class-summary" id="class-summary" aria-label="Jumlah per kelas cacat"></div>
+      <div class="table-scroll"><table><caption class="visually-hidden">Daftar kandidat cacat beserta confidence dan koordinat pada gambar hasil</caption><thead><tr><th scope="col">NO.</th><th scope="col">JENIS CACAT</th><th scope="col">CONFIDENCE</th><th scope="col">KOORDINAT [X₁, Y₁, X₂, Y₂]</th></tr></thead><tbody id="detections-body"><tr><td colspan="4" class="empty-table">Belum ada hasil inspeksi.</td></tr></tbody></table></div>
+      <p class="table-note">Koordinat menggunakan piksel pada gambar yang orientasinya sudah disesuaikan. Confidence adalah skor model, bukan kepastian bahwa PCB cacat.</p>
+    </section>
+
+    <footer class="footer"><p><strong>BATAS PENGGUNAAN</strong> Demo untuk meninjau cacat visual PCB polos yang menyerupai dataset. Hasil tidak memastikan kelayakan elektrik atau menggantikan pemeriksaan QC.</p><span>PCB INSPECT<span aria-hidden="true"> / </span>LOCAL</span></footer>
+  </main>
+</body>
+</html>
