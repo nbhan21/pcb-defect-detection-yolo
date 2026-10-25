@@ -42,3 +42,13 @@ Saat file atau confidence berubah, hasil lama dibatalkan agar unduhan tidak tert
 Periksa gambar dengan ground truth dan prediksi: cacat terlewat adalah false negative, kotak pada bagian normal adalah false positive, kelas yang tertukar adalah salah klasifikasi, dan kotak yang meleset dapat gagal pada batas IoU lebih ketat. Metrik agregat tidak menggantikan pemeriksaan contoh ini.
 
 Perubahan layout PCB dan kondisi foto dapat mengubah hasil. Proyek membuktikan pipeline dan performa pada data evaluasi yang dicatat; pemeriksaan kelayakan PCB fisik memerlukan prosedur lain.
+
+## Menelusuri satu inspeksi aktual
+
+Pada gambar validation `l_light_07_missing_hole_01_1_600.jpg`, aplikasi final pada CUDA menghasilkan satu kandidat `missing_hole`, class ID 2, confidence sekitar 79,0%, dan kotak sekitar `[299.6, 163.4, 333.8, 197.2]`. Angka dibulatkan dari output nyata; ini satu contoh input, bukan gambaran akurasi seluruh dataset.
+
+Buka `pcb_inspector/api.py`: `UploadFile` menerima file multipart dan `Form` menerima confidence. Route memeriksa kesiapan model dan input, lalu memanggil pekerjaan decode/inference melalui `run_in_threadpool`. Route async tetap dapat melayani health ketika pekerjaan yang memblokir berjalan di thread. Lock menolak inference kedua dengan 429; pengujian concurrency memeriksa perilaku ini.
+
+Model dimuat sekali melalui lifespan aplikasi. `PCBDetector` mengubah output tensor menjadi dictionary Python yang berisi nama kelas, skor, koordinat dan PNG. FastAPI menyerialisasikannya menjadi JSON. `web/app.js` menerima JSON melalui fetch, membuat elemen tabel dan blob unduhan. Hash checkpoint pada health dan response dijaga konsisten; pergantian model membatalkan hasil lama agar metadata tidak tertukar.
+
+Eksperimen final menghasilkan validation mAP50 87,11% dan test 65,80%. Gap ini menunjukkan mengapa web yang berhasil menjalankan model belum berarti model andal di semua board. Baca `reports/error-analysis.md` bersama visual lokal untuk memahami kesalahan model sebelum menafsirkan confidence.

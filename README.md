@@ -4,7 +4,7 @@ Demo inspeksi visual PCB polos dengan YOLO11n yang di-fine-tune dan aplikasi lok
 
 ## Status
 
-Implementasi dan verifikasi model sedang berlangsung. Angka evaluasi final akan dicatat setelah eksperimen selesai; jangan menganggap aplikasi atau akurasi model sudah terverifikasi hanya dari adanya source code. Lihat `reports/implementation-status.md` dan `reports/evaluation.json` ketika tersedia.
+MVP telah diimplementasikan dan diverifikasi dengan checkpoint PCB terlatih pada GPU, termasuk UI responsif, PNG/CSV, validasi input, dan pembatalan hasil lama. Baseline mencapai **test mAP50 65,80%**; generalisasi masih terbatas dan hasil belum layak dianggap keputusan QC. Lihat [status implementasi](reports/implementation-status.md), [evaluasi](reports/evaluation.json), dan [analisis kesalahan](reports/error-analysis.md).
 
 ## Arsitektur
 
@@ -69,6 +69,24 @@ node --test tests/frontend.test.mjs
 ```
 
 Node hanya dibutuhkan untuk tes helper frontend; aplikasi tidak membutuhkan npm build atau framework frontend.
+
+## Hasil baseline aktual
+
+Fine-tuning memakai RTX 3050 Laptop 4 GB, torch 2.5.1+cu121 dan Ultralytics 8.3.228. Batch 4 lolos smoke test. Training berhenti lewat early stopping setelah **12 epoch**, dengan checkpoint terbaik pada **epoch 4**, dari batas maksimum 40 epoch. Waktu wrapper sekitar **48,6 menit**; peak memori yang direservasi PyTorch sekitar **0,76 GiB**, di luar alokasi driver/display.
+
+Confidence **0,60** dipilih dari validation. Test memakai 2.700 gambar dari family sumber yang terpisah. Precision/recall/F1 berikut adalah agregat micro pada confidence 0,60 dan pencocokan class-aware IoU ≥ 0,50; mAP adalah rerata per kelas dari kurva AP.
+
+| Metrik | Validation | Test |
+|---|---:|---:|
+| mAP50 | 87,11% | 65,80% |
+| mAP50–95 | 39,28% | 26,52% |
+| Precision | 85,16% | 68,64% |
+| Recall | 85,80% | 61,57% |
+| F1 | 85,48% | 64,91% |
+
+Selisih validation/test cukup besar. `missing_hole` lebih berhasil, sedangkan `short` dan `spurious_copper` masih sering gagal. Seluruh gambar evaluasi memiliki anotasi cacat; false-alarm rate pada PCB normal tanpa cacat belum diukur. Confidence dan checkpoint tidak disetel ulang berdasarkan test.
+
+Uji aplikasi final memakai CUDA dengan satu gambar validation 600×600: request pertama mencatat sekitar 5,2 detik inference termasuk warmup awal, satu pengulangan sekitar 82 ms. Ini observasi satu input, bukan distribusi benchmark. Rincian ada di [runtime checks](reports/runtime-checks.json) dan [konfigurasi training](reports/training-config.json). Suite kode: **50 tes Python dan 7 tes frontend lulus**; satu upstream deprecation warning Starlette/AnyIO masih ada.
 
 ## Data dan evaluasi
 

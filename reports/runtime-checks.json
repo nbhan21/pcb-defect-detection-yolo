@@ -1,0 +1,38 @@
+{
+  "checkpoint_kind": "final validation-selected model",
+  "input_split": "validation",
+  "health_status": 200,
+  "inspection_status": 200,
+  "corrupt_status": 400,
+  "invalid_confidence_status": 422,
+  "png_dimensions": [
+    600,
+    600
+  ],
+  "png_bytes": 469410,
+  "total_detections": 1,
+  "model": {
+    "name": "YOLO11n PCB",
+    "checkpoint_sha256": "607af0226c7826171357a61d4bcc013d16b9aba2b31623eb3816e425478ed7f2",
+    "device": "cuda:0"
+  },
+  "confidence": 0.6,
+  "api_single_warm_inference_ms": 80.808,
+  "browser_first_cold_inference_ms": 5247.8,
+  "browser_single_warm_inference_ms": 82.4,
+  "latency_note": "Single 600x600 validation image observations, not a benchmark distribution. Cold request includes initial model/device warmup.",
+  "browser_checks": [
+    "not-ready 503 UI",
+    "real zero detections from smoke checkpoint",
+    "real positive detections from provisional and final checkpoints",
+    "misleading filename/MIME accepted for actual JPEG bytes",
+    "non-image rejected",
+    "confidence change invalidates downloads",
+    "health checkpoint change clears stale result",
+    "unexpected inspection checkpoint triggers refresh/rerun",
+    "390px no document horizontal overflow",
+    "CSV browser download verified then moved to D; PNG payload and rendered-image/link identity verified without another default C download"
+  ],
+  "csv_export_rows_verified": 1,
+  "csv_export_method": "Actual API detections passed through the same csvForDetections helper used by the browser, written directly to D; browser link download mechanism separately checked."
+}
