@@ -1,5 +1,7 @@
 # Membaca Alur PCB Inspect
 
+Dokumen ini menjelaskan konsep dan cara membaca kode. Untuk perintah yang dijalankan secara berurutan, hasil tiap tahap, serta cara membuka website, ikuti [Panduan praktik dari awal](getting-started.md).
+
 ## Apa yang dipelajari model
 
 Satu baris label YOLO memuat `class_id x_center y_center width height`. Empat koordinat adalah rasio terhadap ukuran gambar, dari 0 sampai 1. Misalnya `4 0.5 0.5 0.1 0.04` berarti cacat `open_circuit` dengan pusat di tengah gambar, lebar 10% dan tinggi 4% gambar. Nilai ini ilustrasi format, bukan output model atau anotasi yang telah diverifikasi.

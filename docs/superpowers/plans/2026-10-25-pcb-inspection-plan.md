@@ -1,5 +1,7 @@
 # PCB Inspection Implementation Plan
 
+Catatan setelah implementasi: referensi `tests/` dan `pytest.ini` dalam checklist ini menunjukkan lokasi saat implementasi awal. Tes kini berada di [arsip verifikasi](../../../archive/verification/README.md). Untuk urutan penggunaan proyek saat ini, ikuti [panduan praktik](../../getting-started.md).
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:executing-plans for the main implementation. Independent frontend and API work may be delegated in parallel under the frozen contract below. Steps use checkbox (`- [x]`) syntax for tracking.
 
 **Goal:** Fine-tune YOLO11n on PCB defects and deliver a tested local FastAPI image-upload application with PNG/CSV downloads and honest evaluation.

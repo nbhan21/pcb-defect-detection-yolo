@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { csvForDetections, formatApiError, createRequestGate } from '../web/helpers.mjs';
+import { csvForDetections, formatApiError, createRequestGate } from '../../../web/helpers.mjs';
 
 test('CSV records quote commas, newlines and double quotes without breaking columns', () => {
   const csv = csvForDetections([

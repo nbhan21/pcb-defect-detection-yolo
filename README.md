@@ -25,6 +25,8 @@ Web statis HTML/CSS/JavaScript dilayani oleh FastAPI dari origin yang sama. Trai
 
 ## Menjalankan pada Windows dan PowerShell
 
+Untuk panduan belajar berurutan dari dataset hingga website, mulai dari [Panduan praktik dari awal](docs/getting-started.md). [Learning guide](docs/learning-guide.md) menjelaskan konsep dan isi kode. Jika memakai hasil training yang sudah ada pada mesin ini, cukup ikuti bagian menjalankan website pada panduan praktik.
+
 Root proyek pada mesin pengembangan: `D:\!PROJECT\!persiapan_maganghub\projects\comvis_yolo`.
 
 ```powershell
@@ -60,12 +62,14 @@ Batch 4 adalah kandidat awal, bukan jaminan VRAM cukup. Gunakan batch hasil smok
 
 Buka [aplikasi lokal](http://127.0.0.1:8000). Gunakan foto PCB polos yang menyerupai contoh data, lalu periksa temuan secara manual. API interaktif tersedia di `/docs`.
 
-### Pemeriksaan kode
+### Pemeriksaan kode (opsional, diarsipkan)
+
+Tes kode berada di `archive/verification/` agar terpisah dari alur belajar utama. Tes tidak perlu dijalankan untuk prepare data, training, evaluasi, atau membuka website. Folder dataset `data/prepared/test/` tetap merupakan bagian evaluasi model dan tidak diarsipkan.
 
 ```powershell
 . .\scripts\project-env.ps1
-& $ProjectPython -m pytest -q
-node --test tests/frontend.test.mjs
+& $ProjectPython -m pytest -c archive/verification/pytest.ini archive/verification/tests -q
+node --test archive/verification/tests/frontend.test.mjs
 ```
 
 Node hanya dibutuhkan untuk tes helper frontend; aplikasi tidak membutuhkan npm build atau framework frontend.

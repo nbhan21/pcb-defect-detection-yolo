@@ -2,6 +2,8 @@
 
 Verifikasi akhir 25 Oktober 2026. MVP selesai diimplementasikan dan diuji dengan checkpoint final nyata.
 
+Panduan menjalankan tahap demi tahap tersedia di [getting-started.md](../docs/getting-started.md), sedangkan learning-guide menjelaskan konsep dan alur kode. Tes kode beserta konfigurasi pytest diarsipkan ke `archive/verification/`; 50 tes Python dan 7 tes frontend tetap lulus setelah pemindahan. Arsip tidak perlu dijalankan untuk memakai pipeline atau website.
+
 - FastAPI + HTML/CSS/JavaScript berjalan lokal, satu worker. Upload JPEG/PNG, slider confidence, gambar hasil, kotak/kelas/confidence, ringkasan, serta ekspor PNG/CSV tersedia.
 - Data: 5.856 train / 2.112 validation / 2.700 test; enam kelas. Family/hash tidak melewati split. Semua 10.668 gambar prepared cocok dengan hash manifest. Label `_256` dipasangkan dengan `_600` pada data turunan; raw dipertahankan.
 - Environment: venv khusus, 55 paket kompatibel dan requirements.txt dibekukan. Torch 2.5.1+cu121, CUDA 12.1, RTX 3050 Laptop 4 GB, driver 537.70. Runtime/cache/temp/data/weights proyek berada di D; Windows tetap membaca executable/file sistem yang sudah ada di C.
