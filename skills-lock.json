@@ -1,0 +1,11 @@
+{
+  "version": 1,
+  "skills": {
+    "industrial-brutalist-ui": {
+      "source": "Leonxlnx/taste-skill-classics",
+      "sourceType": "github",
+      "skillPath": "skills/brutalist-skill/SKILL.md",
+      "computedHash": "f5f5fbe2b2a143f0205fad49ce169132921dc19d7cf2d5fa7e31a6295a116c3a"
+    }
+  }
+}

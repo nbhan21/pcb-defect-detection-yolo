@@ -1,0 +1,16 @@
+# CUDA wheels are installed first by setup.ps1 from the official PyTorch index.
+torch==2.5.1
+torchvision==0.20.1
+ultralytics==8.3.228
+numpy==1.26.4
+opencv-python==4.11.0.86
+pillow==11.2.1
+matplotlib==3.10.1
+pandas==2.2.3
+scipy==1.15.2
+PyYAML==6.0.2
+fastapi==0.115.12
+uvicorn==0.34.2
+python-multipart==0.0.20
+httpx==0.28.1
+pytest==8.3.5
