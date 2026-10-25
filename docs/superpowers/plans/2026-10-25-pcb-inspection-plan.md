@@ -1,6 +1,6 @@
 # PCB Inspection Implementation Plan
 
-> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:executing-plans for the main implementation. Independent frontend and API work may be delegated in parallel under the frozen contract below. Steps use checkbox (`- [ ]`) syntax for tracking.
+> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:executing-plans for the main implementation. Independent frontend and API work may be delegated in parallel under the frozen contract below. Steps use checkbox (`- [x]`) syntax for tracking.
 
 **Goal:** Fine-tune YOLO11n on PCB defects and deliver a tested local FastAPI image-upload application with PNG/CSV downloads and honest evaluation.
 
@@ -75,11 +75,11 @@ This JSON is a schema illustration, not an actual model result. `bbox_xyxy` uses
 - [x] Write failing configuration tests to prohibit test-as-validation and verify class order, provenance and split integrity; implement wrappers and run GREEN.
 - [x] Download trusted `yolo11n.pt` to D:. Verify torch version/CUDA/device and record driver/VRAM.
 - [x] Run one-epoch smoke training on a small representative train subset, with validation subset, image size 640 and candidate batch 4. On CUDA OOM retry batch 2 then 1, cleaning the failed model/process before retry. If GPU fails for other reasons, diagnose rather than silently starting a long CPU training.
-- [ ] Baseline: selected smoke-test batch, image size 640, at most 40 epochs, early stopping patience 8, optimizer AdamW with lr0 0.001, cache false, workers 0, AMP when capability check passes, seed 42, all trainable layers. Set an independent one-hour epoch-boundary budget without changing the epoch scheduler; allow one epoch plus final validation of overrun (not a duration/performance promise). Use modest lighting augmentation, mosaic/mixup/cutmix disabled and no additional geometry that could cut tiny defects.
-- [ ] Log training to D: and report actual progress while it runs. Select best checkpoint using validation.
-- [ ] On validation only, choose confidence from 0.10–0.70 in increments of 0.05 by aggregate F1, preferring the higher recall candidate on ties, then the higher precision candidate. Keep NMS IoU 0.50 and record this choice.
-- [ ] Run final held-out test once after selection; write per-class/aggregate precision, recall, mAP50/mAP50-95 and examples of failure types. Test visuals are analysis outputs, not tuning input.
-- [ ] Copy selected weights to the promoted local path, compute hash and metadata. Do not publish data or weights while redistribution terms remain unclear.
+- [x] Baseline: selected smoke-test batch, image size 640, at most 40 epochs, early stopping patience 8, optimizer AdamW with lr0 0.001, cache false, workers 0, AMP when capability check passes, seed 42, all trainable layers. Set an independent one-hour epoch-boundary budget without changing the epoch scheduler; allow one epoch plus final validation of overrun (not a duration/performance promise). Use modest lighting augmentation, mosaic/mixup/cutmix disabled and no additional geometry that could cut tiny defects.
+- [x] Log training to D: and report actual progress while it runs. Select best checkpoint using validation.
+- [x] On validation only, choose confidence from 0.10–0.70 in increments of 0.05 by aggregate F1, preferring the higher recall candidate on ties, then the higher precision candidate. Keep NMS IoU 0.50 and record this choice.
+- [x] Run final held-out test once after selection; write per-class/aggregate precision, recall, mAP50/mAP50-95 and examples of failure types. Test visuals are analysis outputs, not tuning input.
+- [x] Copy selected weights to the promoted local path, compute hash and metadata. Do not publish data or weights while redistribution terms remain unclear.
 
 ## Task 3: API and Inference Service (Parallel Owner)
 
@@ -108,12 +108,12 @@ This JSON is a schema illustration, not an actual model result. `bbox_xyxy` uses
 
 **Files:** `README.md`, `docs/learning-guide.md`, aggregate `reports/evaluation.json` and `reports/implementation-status.md`, relevant tests above.
 
-- [ ] Integrate components using an actual trained checkpoint, verify readiness and a real image response. Never substitute fabricated detections for this gate.
-- [ ] Run the full pytest suite and Node tests. Launch the local app and test upload-to-render through browser automation, CSV download and PNG payload/link verification (keep artifacts on D; browser download-folder setting is separate), a bad file, zero-detection state, repeated file selection, and narrow layout.
-- [ ] Inspect screenshot at desktop and narrow width; fix concrete usability/layout problems, then rerun the affected path only.
-- [ ] Write README commands for setup, prepare, train, evaluate and run; add flow diagram, data/model attribution, actual metrics and limitations. Explain the frontend request, API validation, model output, rendering and downloads in `docs/learning-guide.md`.
-- [ ] Verify staged files exclude raw data, ZIP, environment, caches, credentials, weights, and source-derived images. Commit and push source/docs to the already-authorized public repo.
-- [ ] Update this checklist and actual status. Report what ran, measured performance, current limitations and how Naufal can run/inspect the demo.
+- [x] Integrate components using an actual trained checkpoint, verify readiness and a real image response. Never substitute fabricated detections for this gate.
+- [x] Run the full pytest suite and Node tests. Launch the local app and test upload-to-render through browser automation, CSV download and PNG payload/link verification (keep artifacts on D; browser download-folder setting is separate), a bad file, zero-detection state, repeated file selection, and narrow layout.
+- [x] Inspect screenshot at desktop and narrow width; fix concrete usability/layout problems, then rerun the affected path only.
+- [x] Write README commands for setup, prepare, train, evaluate and run; add flow diagram, data/model attribution, actual metrics and limitations. Explain the frontend request, API validation, model output, rendering and downloads in `docs/learning-guide.md`.
+- [x] Verify staged files exclude raw data, ZIP, environment, caches, credentials, weights, and source-derived images. Commit and push source/docs to the already-authorized public repo.
+- [x] Update this checklist and actual status. Report what ran, measured performance, current limitations and how Naufal can run/inspect the demo.
 
 ## Execution Authorization
 
