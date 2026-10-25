@@ -56,7 +56,7 @@ Invoke-WebRequest -Uri 'https://github.com/ultralytics/assets/releases/download/
 .\run.ps1
 ```
 
-Batch 4 adalah kandidat awal, bukan jaminan VRAM cukup. Gunakan batch hasil smoke test; jika CUDA OOM, hentikan run yang gagal dan turunkan ke 2 lalu 1. Training utama memiliki batas waktu trainer satu jam dan early stopping; jumlah epoch yang benar-benar selesai bisa berbeda. Jalankan evaluasi setelah training untuk membuat `models/pcb-best.pt` dan `models/model-metadata.json`. Tanpa checkpoint PCB yang valid, web menunjukkan model belum siap dan mengembalikan HTTP 503.
+Batch 4 adalah kandidat awal, bukan jaminan VRAM cukup. Gunakan batch hasil smoke test; jika CUDA OOM, hentikan run yang gagal dan turunkan ke 2 lalu 1. Training utama berhenti pada batas 40 epoch, early stopping, atau budget satu jam, mana yang tercapai lebih dahulu. Budget waktu diperiksa setelah setiap epoch beserta validation, sehingga dapat terlewati hingga satu epoch dan final validation. Scheduler tetap mengikuti jumlah epoch yang diminta. Jalankan evaluasi setelah training untuk membuat `models/pcb-best.pt` dan `models/model-metadata.json`. Tanpa checkpoint PCB yang valid, web menunjukkan model belum siap dan mengembalikan HTTP 503.
 
 Buka [aplikasi lokal](http://127.0.0.1:8000). Gunakan foto PCB polos yang menyerupai contoh data, lalu periksa temuan secara manual. API interaktif tersedia di `/docs`.
 

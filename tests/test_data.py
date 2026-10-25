@@ -4,6 +4,7 @@ import json
 from pathlib import Path
 import tempfile
 import unittest
+from zipfile import ZipFile
 
 from PIL import Image
 
@@ -13,6 +14,29 @@ from pcb_inspector.data import (
 
 
 class DataIntegrityTests(unittest.TestCase):
+    def test_archive_bytes_are_the_same_bytes_used_for_prepared_images(self):
+        with tempfile.TemporaryDirectory() as temp:
+            base = Path(temp)
+            raw = base / 'raw'
+            images, labels = raw / 'train/images', raw / 'train/labels'
+            images.mkdir(parents=True)
+            labels.mkdir(parents=True)
+            with ZipFile(base / 'pcb-defect-dataset.zip', 'w') as archive:
+                for i in range(10):
+                    stem = f'light_{i:02}_spur_01_1_600'
+                    image = images / (stem + '.png')
+                    label = labels / (stem + '.txt')
+                    Image.new('RGB', (32, 32), (i*20, 30, 70)).save(image)
+                    label.write_text('\n'.join(f'{c} .5 .5 .2 .2' for c in range(6)))
+                    for path in (image, label):
+                        archive.write(path, 'raw/' + path.relative_to(raw).as_posix())
+                    Image.new('RGB', (32, 32), 'white').save(image)
+            prepare_dataset(raw, base / 'prepared', base / 'reports')
+            manifest = json.loads((base / 'prepared/manifest.json').read_text())
+            for record in manifest['records']:
+                output = base / 'prepared' / record['split'] / 'images' / record['filename']
+                self.assertEqual(hashlib.sha256(output.read_bytes()).hexdigest(), record['sha256'])
+
     def test_family_groups_rotations_and_prefix_variants(self):
         for name in ('light_01_missing_hole_01_1_600', 'l_light_01_spur_04_2_600', 'rotation_270_light_01_short_01_2_600'):
             self.assertEqual(family_from_name(name), 'light_01')

@@ -1,5 +1,27 @@
 """Small evaluation primitives independent of the training framework."""
 from collections import defaultdict
+import time
+
+
+class TrainingBudget:
+    """Stop after the first epoch/time limit without rewriting YOLO's schedule.
+
+    Checked after each fit epoch, so elapsed time can exceed the budget by one
+    epoch and final validation. Framework early stopping remains effective.
+    """
+
+    def __init__(self, epochs, seconds=None, clock=time.monotonic):
+        self.epochs, self.seconds, self.clock = epochs, seconds, clock
+        self.started = None
+
+    def start(self, trainer):
+        self.started = self.clock()
+
+    def check(self, trainer):
+        elapsed = self.clock() - self.started
+        trainer.stop |= trainer.epoch + 1 >= self.epochs or (
+            self.seconds is not None and elapsed >= self.seconds
+        )
 
 
 def verify_manifest(manifest: dict) -> None:

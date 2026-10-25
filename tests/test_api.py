@@ -86,8 +86,9 @@ def test_valid_image_yields_consistent_png_counts_and_metadata(client, fmt, mime
         assert decoded.format == "PNG"
 
 
-def test_actual_image_bytes_override_misleading_filename(client):
-    response = client.post("/api/inspect", files={"image": ("not-a-photo.exe", picture(), "application/octet-stream")})
+@pytest.mark.parametrize("mime", ["application/octet-stream", "image/gif", "text/plain"])
+def test_actual_image_bytes_override_misleading_filename_and_mime(client, mime):
+    response = client.post("/api/inspect", files={"image": ("not-a-photo.exe", picture(), mime)})
     assert response.status_code == 200
 
 
@@ -103,9 +104,9 @@ def test_unsupported_decoded_format_is_415(client):
     assert response.status_code == 415
 
 
-def test_plain_non_image_file_is_415(client):
+def test_plain_non_image_file_is_400(client):
     response = client.post("/api/inspect", files={"image": ("notes.txt", b"hello", "text/plain")})
-    assert response.status_code == 415
+    assert response.status_code == 400
 
 
 def test_upload_limit_is_enforced_before_decode(client):

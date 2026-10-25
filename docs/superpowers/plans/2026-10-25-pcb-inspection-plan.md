@@ -55,16 +55,16 @@ This JSON is a schema illustration, not an actual model result. `bbox_xyxy` uses
 
 **Files:** `scripts/project-env.ps1`, `setup.ps1`, `requirements.in`, `requirements.txt`, `.gitignore`, `pcb_inspector/data.py`, `scripts/prepare_data.py`, `tests/test_data.py`.
 
-**Interfaces:** `prepare_dataset(raw_root: Path, output_root: Path, report_root: Path, seed: int = 42) -> dict`. Produces `data/prepared/dataset.yaml`, manifest JSON and audit report/PNG previews. Raw files remain unchanged; prepared images use hard links on D: (copy fallback) and labels get exact matching stems.
+**Interfaces:** `prepare_dataset(raw_root: Path, output_root: Path, report_root: Path, seed: int = 42) -> dict`. Produces `data/prepared/dataset.yaml`, manifest JSON and audit report/PNG previews. Raw files remain unchanged; prepared images and labels use the same audited source bytes (ZIP when present), copied on D:, with exact matching stems.
 
-- [ ] Create `.gitignore` before initializing Git, connect the existing public repo, and commit only source/documentation/configuration.
-- [ ] Write project-scoped environment configuration for TEMP/TMP/TMPDIR, UV/PIP/Torch/YOLO/matplotlib/XDG caches and outputs. Reuse the D: base Python and D: uv tool; create a new `.venv`.
+- [x] Create `.gitignore` before initializing Git, connect the existing public repo, and commit only source/documentation/configuration.
+- [x] Write project-scoped environment configuration for TEMP/TMP/TMPDIR, UV/PIP/Torch/YOLO/matplotlib/XDG caches and outputs. Reuse the D: base Python and D: uv tool; create a new `.venv`.
 - [ ] Verify available package versions, install a compatible single CUDA build (initial candidate torch 2.5.1 cu121 + torchvision 0.20.1), then freeze resolved versions after GPU verification. Do not install a CUDA toolkit or update drivers.
-- [ ] Write failing tests for `_256`→`_600` bijection, invalid/ambiguous labels, normalized geometry, deterministic family splits, class coverage, and duplicate supergroups.
-- [ ] Run `.venv/Scripts/python.exe -m pytest tests/test_data.py -q` and confirm RED before implementing data functions.
-- [ ] Implement validated preparation. Record raw pair mapping, source family, image hash, output split and annotation counts. Check exact duplicate image bytes across families and merge connected groups before split. Fail clearly on unrecognized family or unresolved pair.
-- [ ] Run tests to GREEN; run preparation on actual data. Visually inspect bounding-box previews from all classes plus original/rotated variants. Stop for diagnosis if coordinate geometry does not match images.
-- [ ] Record actual new split counts and hashes; verify family/hash intersections between splits are empty. Commit source and aggregate reports, excluding source-image previews.
+- [x] Write failing tests for `_256`→`_600` bijection, invalid/ambiguous labels, normalized geometry, deterministic family splits, class coverage, and duplicate supergroups.
+- [x] Run `.venv/Scripts/python.exe -m pytest tests/test_data.py -q` and confirm RED before implementing data functions.
+- [x] Implement validated preparation. Record raw pair mapping, source family, image hash, output split and annotation counts. Check exact duplicate image bytes across families and merge connected groups before split. Fail clearly on unrecognized family or unresolved pair.
+- [x] Run tests to GREEN; run preparation on actual data. Visually inspect bounding-box previews from all classes plus original/rotated variants. Stop for diagnosis if coordinate geometry does not match images.
+- [x] Record actual new split counts and hashes; verify family/hash intersections between splits are empty. Commit source and aggregate reports, excluding source-image previews.
 
 ## Task 2: Fine-Tuning and Evaluation
 
@@ -72,10 +72,10 @@ This JSON is a schema illustration, not an actual model result. `bbox_xyxy` uses
 
 **Interfaces:** CLI training/evaluation scripts read the prepared YAML. Promotion produces `models/pcb-best.pt` and `models/model-metadata.json` with `name`, `checkpoint_sha256`, `class_names`, `default_confidence`, model provenance, split hash, configuration and actual validation/test metrics.
 
-- [ ] Write failing configuration tests to prohibit test-as-validation and verify class order, provenance and split integrity; implement wrappers and run GREEN.
+- [x] Write failing configuration tests to prohibit test-as-validation and verify class order, provenance and split integrity; implement wrappers and run GREEN.
 - [ ] Download trusted `yolo11n.pt` to D:. Verify torch version/CUDA/device and record driver/VRAM.
 - [ ] Run one-epoch smoke training on a small representative train subset, with validation subset, image size 640 and candidate batch 4. On CUDA OOM retry batch 2 then 1, cleaning the failed model/process before retry. If GPU fails for other reasons, diagnose rather than silently starting a long CPU training.
-- [ ] Baseline: selected smoke-test batch, image size 640, at most 40 epochs, early stopping patience 8, optimizer AdamW with lr0 0.001, cache false, workers 0, AMP when capability check passes, seed 42, all trainable layers. Set a one-hour trainer time budget (resource cap, not duration/performance promise). Use modest lighting augmentation, mosaic/mixup/cutmix disabled and no additional geometry that could cut tiny defects.
+- [ ] Baseline: selected smoke-test batch, image size 640, at most 40 epochs, early stopping patience 8, optimizer AdamW with lr0 0.001, cache false, workers 0, AMP when capability check passes, seed 42, all trainable layers. Set an independent one-hour epoch-boundary budget without changing the epoch scheduler; allow one epoch plus final validation of overrun (not a duration/performance promise). Use modest lighting augmentation, mosaic/mixup/cutmix disabled and no additional geometry that could cut tiny defects.
 - [ ] Log training to D: and report actual progress while it runs. Select best checkpoint using validation.
 - [ ] On validation only, choose confidence from 0.10–0.70 in increments of 0.05 by aggregate F1, preferring the higher recall candidate on ties, then the higher precision candidate. Keep NMS IoU 0.50 and record this choice.
 - [ ] Run final held-out test once after selection; write per-class/aggregate precision, recall, mAP50/mAP50-95 and examples of failure types. Test visuals are analysis outputs, not tuning input.
@@ -87,11 +87,11 @@ This JSON is a schema illustration, not an actual model result. `bbox_xyxy` uses
 
 **Interfaces:** `create_app(service=None) -> FastAPI`; `PCBDetector(model_path: Path, metadata_path: Path, device: str = 'auto')`, properties `ready`, `message`, `device`, `model_info`, `default_confidence`; `inspect(image: PIL.Image.Image, confidence: float) -> dict` returns the frozen inspection response. API owns its non-blocking inference lock. Constants module is owned by this task; training reads its class names without editing it.
 
-- [ ] Write tests with injected lightweight predictor for health not-ready, valid image, invalid/empty/unsupported bytes, oversize payload and decoded pixel limit, confidence boundaries, zero detections, busy 429, model mapping mismatch and EXIF alignment.
-- [ ] Run targeted tests RED, implement service/API, then run GREEN. Test fixtures are explicitly synthetic unit inputs and never application demo predictions.
-- [ ] Load model once in app lifespan, use CUDA only if available and expose actual device; validate names against the canonical six classes. Apply EXIF transpose and RGB conversion before inference. Return sorted detections, class counts and readable PNG labels.
-- [ ] Serve `web/` from the same FastAPI app, retain upload/result only for request lifetime, keep temporary files on D:, and return the documented errors without user paths/stack traces.
-- [ ] Implement one-worker localhost launcher sourcing project environment. Leave weights absence as a visible not-ready state.
+- [x] Write tests with injected lightweight predictor for health not-ready, valid image, invalid/empty/unsupported bytes, oversize payload and decoded pixel limit, confidence boundaries, zero detections, busy 429, model mapping mismatch and EXIF alignment.
+- [x] Run targeted tests RED, implement service/API, then run GREEN. Test fixtures are explicitly synthetic unit inputs and never application demo predictions.
+- [x] Load model once in app lifespan, use CUDA only if available and expose actual device; validate names against the canonical six classes. Apply EXIF transpose and RGB conversion before inference. Return sorted detections, class counts and readable PNG labels.
+- [x] Serve `web/` from the same FastAPI app, retain upload/result only for request lifetime, keep temporary files on D:, and return the documented errors without user paths/stack traces.
+- [x] Implement one-worker localhost launcher sourcing project environment. Leave weights absence as a visible not-ready state.
 
 ## Task 4: Industrial-Brutalist Frontend (Parallel Owner)
 
@@ -99,10 +99,10 @@ This JSON is a schema illustration, not an actual model result. `bbox_xyxy` uses
 
 **Interfaces:** Consume only the frozen health/inspection endpoints. `helpers.mjs` exports CSV formatting and request-generation/state helpers for Node tests. No backend schema changes without coordinating with root/API owner.
 
-- [ ] Write Node tests for CSV quoting/header-only result, error detail formatting, and stale request invalidation; run RED, implement helpers and run GREEN with `node --test tests/frontend.test.mjs`.
-- [ ] Read project `.agents/skills/industrial-brutalist-ui/SKILL.md` and implement the approved light/blue palette. Keep PCB pixels unaffected, data readable, and keyboard controls accessible. No extra framework or Node build step.
-- [ ] Build upload/drop zone, confidence control, original/result preview, actual model status, class totals, table and PNG/CSV downloads. Clear prior results on new file or confidence changes and disable stale downloads.
-- [ ] Cover empty/loading/success/no-detection/error states, responsive single-column layout, and health 503 handling. Revoke blob URLs and ignore results from superseded requests.
+- [x] Write Node tests for CSV quoting/header-only result, error detail formatting, and stale request invalidation; run RED, implement helpers and run GREEN with `node --test tests/frontend.test.mjs`.
+- [x] Read project `.agents/skills/industrial-brutalist-ui/SKILL.md` and implement the approved light/blue palette. Keep PCB pixels unaffected, data readable, and keyboard controls accessible. No extra framework or Node build step.
+- [x] Build upload/drop zone, confidence control, original/result preview, actual model status, class totals, table and PNG/CSV downloads. Clear prior results on new file or confidence changes and disable stale downloads.
+- [x] Cover empty/loading/success/no-detection/error states, responsive single-column layout, and health 503 handling. Revoke blob URLs and ignore results from superseded requests.
 
 ## Task 5: Integration, Documentation and Publication
 

@@ -83,8 +83,6 @@ def create_app(service=None) -> FastAPI:
             await image.close()
             raise HTTPException(422, "Confidence harus berada antara 0.05 dan 0.95.")
         try:
-            if image.content_type not in (None, "", "image/jpeg", "image/png", "application/octet-stream"):
-                raise HTTPException(415, "Gunakan gambar JPEG atau PNG.")
             payload = await image.read(MAX_UPLOAD_BYTES + 1)
         finally:
             await image.close()

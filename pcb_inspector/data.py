@@ -4,11 +4,9 @@ import hashlib
 from io import BytesIO
 import json
 import math
-import os
 from pathlib import Path
 import random
 import re
-import shutil
 from zipfile import ZipFile
 
 
@@ -178,12 +176,10 @@ def prepare_dataset(raw_root: Path, output_root: Path, report_root: Path, seed: 
                 raise ValueError(f'Duplicate output filename: {key}')
             names_in_split.add(key)
             destination = output_root/split/'images'/record['filename']
-            try:
-                os.link(record['image_path'], destination)
-                link_counts['hardlink'] += 1
-            except OSError:
-                shutil.copy2(record['image_path'], destination)
-                link_counts['copy'] += 1
+            # Use the exact source audited above, including when the archive
+            # and its extracted directory differ. Copies also isolate raw data.
+            destination.write_bytes(read_source(record['image_path']))
+            link_counts['copy'] += 1
             (output_root/split/'labels'/(record['stem']+'.txt')).write_bytes(read_source(record['label_path']))
             record['split'] = split
             if (index+1) % 2000 == 0:

@@ -79,7 +79,6 @@ function chooseFile(file) {
   if (!file) return;
   if (file.size === 0) { message('File kosong. Pilih gambar JPEG atau PNG yang valid.', 'error'); return; }
   if (file.size > MAX_BYTES) { message('Ukuran file melebihi 10 MiB. Pilih gambar yang lebih kecil.', 'error'); return; }
-  if (file.type && !['image/jpeg', 'image/png'].includes(file.type)) { message('Format belum didukung. Gunakan gambar JPEG atau PNG.', 'error'); return; }
   state.file = file;
   state.originalUrl = URL.createObjectURL(file);
   const selectedUrl = state.originalUrl;

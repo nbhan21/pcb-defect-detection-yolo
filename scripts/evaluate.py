@@ -93,12 +93,13 @@ def save_examples(root, rows, threshold, directory):
 def main():
     root=Path(__file__).resolve().parents[1]
     parser=argparse.ArgumentParser()
-    parser.add_argument('--checkpoint',type=Path)
     parser.add_argument('--batch',type=int,default=4)
     args=parser.parse_args()
     training=json.loads((root/'reports/training-config.json').read_text())
-    checkpoint=args.checkpoint or Path(training['best_checkpoint'])
+    checkpoint=Path(training['best_checkpoint'])
     digest=hashlib.sha256(checkpoint.read_bytes()).hexdigest()
+    if digest != training['best_checkpoint_sha256']:
+        raise RuntimeError('Checkpoint berubah sejak training; provenance tidak cocok')
     prepared=root/'data/prepared'
     manifest_path=prepared/'manifest.json'
     manifest=json.loads(manifest_path.read_text())
