@@ -1,132 +1,55 @@
-# PCB Inspect
+# PCB Defect Detection with YOLO11n
 
-Demo inspeksi visual PCB polos dengan YOLO11n yang di-fine-tune dan aplikasi lokal FastAPI. Upload satu gambar untuk melihat lokasi/jenis cacat, confidence, ringkasan per kelas, serta mengunduh PNG dan CSV. Proyek ini menggunakan pretrained weights COCO sebagai titik awal training; bukan model yang dilatih dari nol.
+Proyek pembelajaran untuk mendeteksi cacat visual pada **PCB polos**. Model pretrained YOLO11n dilatih ulang pada enam kelas cacat, lalu digunakan oleh website lokal FastAPI untuk menampilkan bounding box, ringkasan deteksi, dan unduhan PNG/CSV.
 
-## Status
+Dataset latihan diperoleh dari [PCB Defect dataset di Kaggle](https://www.kaggle.com/datasets/norbertelter/pcb-defect-dataset/data), yang diunggah akun `norbertelter`. Paketnya sudah memuat gambar dan anotasi YOLO, sehingga tidak perlu memberi label dari nol. Dataset ini berkaitan dengan penelitian [Ding dkk., *TDD-Net*](https://doi.org/10.1049/trit.2019.0019). Kredit pengunggah Kaggle tidak berarti pengunggah tersebut dipastikan membuat anotasi aslinya.
 
-MVP telah diimplementasikan dan diverifikasi dengan checkpoint PCB terlatih pada GPU, termasuk UI responsif, PNG/CSV, validasi input, dan pembatalan hasil lama. Baseline mencapai **test mAP50 65,80%**; generalisasi masih terbatas dan hasil belum layak dianggap keputusan QC. Lihat [status implementasi](reports/implementation-status.md), [evaluasi](reports/evaluation.json), dan [analisis kesalahan](reports/error-analysis.md).
+## Yang dideteksi
 
-## Arsitektur
+| Kelas model | Cacat visual |
+|---|---|
+| `mouse_bite` | Tepi jalur tembaga terkikis atau berlekuk |
+| `spur` | Tonjolan kecil pada jalur tembaga |
+| `missing_hole` | Lubang pada pad tidak terbentuk |
+| `short` | Jalur yang seharusnya terpisah tampak tersambung |
+| `open_circuit` | Jalur tembaga tampak terputus |
+| `spurious_copper` | Sisa tembaga di area yang tidak semestinya |
 
-```mermaid
-flowchart LR
-    D[Dataset dan anotasi] --> P[Audit dan split per family]
-    P --> T[Fine-tuning YOLO11n]
-    T --> V[Checkpoint dipilih dengan validation]
-    V --> E[Evaluasi test dan error analysis]
-    E --> M[Weights dan metadata lokal]
-    U[Upload JPEG atau PNG] --> A[FastAPI: validasi gambar]
-    A --> I[Inference service]
-    M --> I
-    I --> B[Browser: bounding boxes, tabel, PNG dan CSV]
-```
+## Jalankan bertahap
 
-Web statis HTML/CSS/JavaScript dilayani oleh FastAPI dari origin yang sama. Training adalah perintah terpisah dari web. Tidak ada database, akun pengguna, atau riwayat inspeksi permanen. Jalankan satu worker pada `127.0.0.1`.
+Panduan lengkap, termasuk input dan output setiap perintah: **[Panduan praktik](docs/getting-started.md)**. Penjelasan konsep dan alur kode: [Learning guide](docs/learning-guide.md).
 
-## Menjalankan pada Windows dan PowerShell
-
-Untuk panduan belajar berurutan dari dataset hingga website, mulai dari [Panduan praktik dari awal](docs/getting-started.md). [Learning guide](docs/learning-guide.md) menjelaskan konsep dan isi kode. Jika memakai hasil training yang sudah ada pada mesin ini, cukup ikuti bagian menjalankan website pada panduan praktik.
-
-Root proyek pada mesin pengembangan: `D:\!PROJECT\!persiapan_maganghub\projects\comvis_yolo`.
-
-```powershell
-Set-Location 'D:\!PROJECT\!persiapan_maganghub\projects\comvis_yolo'
-.\setup.ps1
-```
-
-Default setup memakai base Python 3.12 dan executable uv yang sudah ada di D: pada workspace ini. Pada komputer lain, berikan lokasi yang sesuai:
+Jalankan perintah dari root repo di PowerShell. Tempatkan proyek, Python, uv, `.venv`, dataset, model, cache, dan output pada drive D: bila mengikuti batasan komputer proyek ini. `setup.ps1` hanya dipakai untuk instalasi awal; ganti contoh path Python dan uv dengan lokasi executable yang benar di drive proyek.
 
 ```powershell
 .\setup.ps1 -BasePython 'D:\Tools\Python312\python.exe' -UvPath 'D:\Tools\uv.exe'
 ```
 
-Path pada contoh tersebut harus diganti dengan executable yang benar-benar tersedia. `.venv` baru dibuat khusus proyek ini; paket Auto MPG/Bank Marketing tidak dipakai bersama. Tidak perlu Anaconda. Versi PyTorch CUDA dipilih untuk driver 537.70 pada RTX 3050 Laptop 4 GB; driver dan perangkat lain perlu pemeriksaan kompatibilitas.
-
-Semua launcher memuat `scripts/project-env.ps1` untuk mengarahkan TEMP/TMP, cache installer/framework, konfigurasi YOLO, dan output proyek ke D:. Menaruh `.venv` di D: saja tidak cukup. Windows tetap dapat membaca executable/file sistem yang sudah ada di C:.
-
-### Dataset dan pretrained weights
-
-Download dataset dari [Kaggle Norbert Elter](https://www.kaggle.com/datasets/norbertelter/pcb-defect-dataset/data). Simpan ZIP di `data/raw/pcb-defect-dataset.zip` dan ekstrak sehingga ada `data/raw/pcb-defect-dataset/data.yaml`, `train`, `val`, dan `test`. Dataset tidak disertakan dalam Git.
+Jika `.venv` proyek sudah tersedia, setup tidak perlu diulang. Simpan dan ekstrak ZIP Kaggle menjadi `data/raw/pcb-defect-dataset/`, lalu tempatkan pretrained `yolo11n.pt` di `models/base/`. Setelah itu, **jalankan satu tahap, periksa hasilnya, baru lanjut**:
 
 ```powershell
-New-Item -ItemType Directory -Path 'models\base' -Force
-Invoke-WebRequest -Uri 'https://github.com/ultralytics/assets/releases/download/v8.3.0/yolo11n.pt' -OutFile 'models\base\yolo11n.pt'
-.\prepare-data.ps1
-.\train.ps1 --smoke --batch 4
-.\train.ps1 --batch 4 --epochs 40 --time-hours 1
-.\evaluate.ps1 --batch 4
-.\run.ps1
+& .\.venv\Scripts\python.exe -B -m scripts.prepare_data --experiment belajar-01
+& .\.venv\Scripts\python.exe -B -m scripts.train --experiment belajar-01 --batch 4 --epochs 40 --time-hours 1
+& .\.venv\Scripts\python.exe -B -m scripts.evaluate --experiment belajar-01 --batch 4
+& .\.venv\Scripts\python.exe -B -m scripts.predict --experiment belajar-01 --image '.\experiments\belajar-01\prepared\val\images\l_light_07_missing_hole_01_1_600.jpg'
+& .\.venv\Scripts\python.exe -B -m scripts.prepare_model --experiment belajar-01
+& .\.venv\Scripts\python.exe -B -m scripts.serve --experiment belajar-01
 ```
 
-Batch 4 adalah kandidat awal, bukan jaminan VRAM cukup. Gunakan batch hasil smoke test; jika CUDA OOM, hentikan run yang gagal dan turunkan ke 2 lalu 1. Training utama berhenti pada batas 40 epoch, early stopping, atau budget satu jam, mana yang tercapai lebih dahulu. Budget waktu diperiksa setelah setiap epoch beserta validation, sehingga dapat terlewati hingga satu epoch dan final validation. Scheduler tetap mengikuti jumlah epoch yang diminta. Jalankan evaluasi setelah training untuk membuat `models/pcb-best.pt` dan `models/model-metadata.json`. Tanpa checkpoint PCB yang valid, web menunjukkan model belum siap dan mengembalikan HTTP 503.
+Script Python mengarahkan file kerja framework ke `.local/` pada proyek sebelum memuat Torch/Ultralytics. Semua hasil run baru berada di `experiments/belajar-01/` dan tidak menimpa baseline lama. Nama eksperimen lain dapat digunakan untuk percobaan berikutnya. Training memakai GPU CUDA; batch 4 adalah pengaturan awal untuk RTX 3050 Laptop 4 GB yang digunakan pada baseline, bukan jaminan cocok untuk perangkat lain. Tidak ada training atau persiapan data yang dijalankan otomatis ketika server dimulai.
 
-Buka [aplikasi lokal](http://127.0.0.1:8000). Gunakan foto PCB polos yang menyerupai contoh data, lalu periksa temuan secara manual. API interaktif tersedia di `/docs`.
+Setelah server menampilkan alamatnya, buka [http://127.0.0.1:8000](http://127.0.0.1:8000). Dokumentasi API ada di `/docs`. Server dapat memakai baseline lokal lama dengan menjalankan `scripts.serve` **tanpa** `--experiment`. Pada clone baru tanpa checkpoint, status model akan belum siap sampai tahap persiapan model selesai. Atur folder unduhan browser ke D: bila PNG/CSV juga harus tersimpan di sana.
 
-### Pemeriksaan kode (opsional, diarsipkan)
+## Baseline sebelumnya
 
-Tes kode berada di `archive/verification/` agar terpisah dari alur belajar utama. Tes tidak perlu dijalankan untuk prepare data, training, evaluasi, atau membuka website. Folder dataset `data/prepared/test/` tetap merupakan bagian evaluasi model dan tidak diarsipkan.
+Eksperimen awal yang sudah dijalankan menghasilkan **test mAP50 65,80%** dan **mAP50–95 26,52%** pada 2.700 gambar test dari family sumber yang dipisah dari train dan validation. Confidence 0,60 dipilih dari validation sebelum test dihitung. [Metrik rinci](reports/evaluation.json), [audit data](reports/data-audit.json), dan [analisis kesalahan](reports/error-analysis.md) adalah hasil **baseline lama**, bukan hasil otomatis dari run `belajar-01`.
 
-```powershell
-. .\scripts\project-env.ps1
-& $ProjectPython -m pytest -c archive/verification/pytest.ini archive/verification/tests -q
-node --test archive/verification/tests/frontend.test.mjs
-```
+Selisih validation mAP50 87,11% dan test mAP50 65,80% menunjukkan keterbatasan generalisasi baseline. Seluruh gambar evaluasi memiliki anotasi cacat; false-alarm rate pada PCB normal belum diukur. Hasil website perlu diperiksa manusia dan tidak memastikan kelayakan listrik atau mutu PCB produksi.
 
-Node hanya dibutuhkan untuk tes helper frontend; aplikasi tidak membutuhkan npm build atau framework frontend.
+## Data, model, dan lisensi
 
-## Hasil baseline aktual
+ZIP dataset, gambar, checkpoint `.pt`, dan hasil prediksi disimpan lokal serta diabaikan Git. Halaman Kaggle mencantumkan lisensi **Unknown** saat diperiksa; periksa ketentuan sumber sebelum menyebarkan dataset atau model turunan. [Ultralytics juga memiliki ketentuan lisensi sendiri](https://www.ultralytics.com/license).
 
-Fine-tuning memakai RTX 3050 Laptop 4 GB, torch 2.5.1+cu121 dan Ultralytics 8.3.228. Batch 4 lolos smoke test. Training berhenti lewat early stopping setelah **12 epoch**, dengan checkpoint terbaik pada **epoch 4**, dari batas maksimum 40 epoch. Waktu wrapper sekitar **48,6 menit**; peak memori yang direservasi PyTorch sekitar **0,76 GiB**, di luar alokasi driver/display.
+Tahap `scripts.prepare_model` menyiapkan checkpoint `.pt` beserta metadata untuk FastAPI. Proyek ini tidak mengonversi model ke ONNX. Website hanya memproses satu gambar JPEG/PNG per request; tidak ada akun, database, atau riwayat inspeksi.
 
-Confidence **0,60** dipilih dari validation. Test memakai 2.700 gambar dari family sumber yang terpisah. Precision/recall/F1 berikut adalah agregat micro pada confidence 0,60 dan pencocokan class-aware IoU ≥ 0,50; mAP adalah rerata per kelas dari kurva AP.
-
-| Metrik | Validation | Test |
-|---|---:|---:|
-| mAP50 | 87,11% | 65,80% |
-| mAP50–95 | 39,28% | 26,52% |
-| Precision | 85,16% | 68,64% |
-| Recall | 85,80% | 61,57% |
-| F1 | 85,48% | 64,91% |
-
-Selisih validation/test cukup besar. `missing_hole` lebih berhasil, sedangkan `short` dan `spurious_copper` masih sering gagal. Seluruh gambar evaluasi memiliki anotasi cacat; false-alarm rate pada PCB normal tanpa cacat belum diukur. Confidence dan checkpoint tidak disetel ulang berdasarkan test.
-
-Uji aplikasi final memakai CUDA dengan satu gambar validation 600×600: request pertama mencatat sekitar 5,2 detik inference termasuk warmup awal, satu pengulangan sekitar 82 ms. Ini observasi satu input, bukan distribusi benchmark. Rincian ada di [runtime checks](reports/runtime-checks.json) dan [konfigurasi training](reports/training-config.json). Suite kode: **50 tes Python dan 7 tes frontend lulus**; satu upstream deprecation warning Starlette/AnyIO masih ada.
-
-## Data dan evaluasi
-
-- Dataset asli: 10.668 gambar, 21.664 anotasi dan enam kelas. Pemeriksaan lokal menemukan 2.667 nama label `_256` yang perlu dipasangkan dengan gambar `_600`.
-- Koreksi diterapkan pada data turunan. Raw data dan ZIP tetap dipertahankan. Visualisasi anotasi tersedia lokal di `reports/visuals/`.
-- Split baru: **5.856 train, 2.112 validation, 2.700 test**. Pengelompokan memakai family nama sumber `light_##`; semua rotasi/varian family yang sama tetap pada satu split. Tidak ada hash file identik yang melewati split pada audit lokal.
-- Validation memilih checkpoint dan confidence. Test digunakan untuk evaluasi akhir setelah pilihan tersebut dibekukan.
-- Laporkan mAP50/mAP50-95 serta precision, recall dan F1 pada threshold yang dipilih dari validation. Pengelompokan ini berbeda dari split bawaan Kaggle, sehingga skor tidak boleh dibandingkan langsung dengan hasil proyek lain yang memakai split berbeda.
-
-## Kelas dan batas kemampuan
-
-| ID | Kelas | Makna ringkas |
-|---:|---|---|
-| 0 | mouse_bite | Bagian tepi jalur seperti terkikis |
-| 1 | spur | Tonjolan jalur yang tidak semestinya |
-| 2 | missing_hole | Lubang pad yang hilang |
-| 3 | short | Sambungan tak semestinya antarjalur |
-| 4 | open_circuit | Jalur yang terputus |
-| 5 | spurious_copper | Sisa tembaga yang tidak semestinya |
-
-Model menilai tampilan visual, bukan kontinuitas listrik, multilayer PCB, solder, atau komponen rakitan. Confidence bukan probabilitas PCB lolos/gagal QC. “Tidak ada cacat terdeteksi” dapat berarti cacat terlewat. Gambar blur, sudut/pencahayaan berbeda, cacat sangat kecil, dan pola PCB baru dapat menurunkan hasil.
-
-Input dibatasi JPEG/PNG, 10 MiB, dan 25 megapiksel. Server memproses hasil dalam memori request; browser menyediakan unduhan. File sementara framework berada di D: melalui launcher.
-
-Lokasi unduhan PNG/CSV mengikuti pengaturan browser, terpisah dari TEMP/cache server. Atur folder unduhan browser ke D: agar file ekspor juga tersimpan di sana.
-
-## Atribusi dan redistribusi
-
-Dataset Kaggle mengatribusikan sumber kepada R. Ding, L. Dai, G. Li dan H. Liu, *TDD-Net: A Tiny Defect Detection Network for Printed Circuit Boards*, 2019, DOI [10.1049/trit.2019.0019](https://doi.org/10.1049/trit.2019.0019). [Repositori terkait](https://github.com/Ixiaohuihuihui/Tiny-Defect-Detection-for-PCB) menjelaskan augmentasi dan pembuatan cacat sintetis.
-
-Lisensi pada halaman Kaggle tertulis **Unknown** saat diperiksa. Dataset, gambar sumber/hasil yang memuatnya, dan checkpoint terlatih tetap lokal sampai ketentuan redistribusinya jelas. Source code dan laporan agregat tersedia pada repo ini. Ultralytics memiliki [ketentuan lisensi tersendiri](https://www.ultralytics.com/license).
-
-Panduan visual memakai [industrial-brutalist-ui](https://github.com/Leonxlnx/taste-skill-classics), dengan palet biru terang sesuai pilihan pengguna.
-
-## Membaca proyek
-
-- [System design](docs/superpowers/specs/2026-10-25-pcb-inspection-design.md)
-- [Implementation plan](docs/superpowers/plans/2026-10-25-pcb-inspection-plan.md)
-- [Panduan alur kode](docs/learning-guide.md)
+Antarmuka mengikuti gaya [industrial-brutalist-ui](https://github.com/Leonxlnx/taste-skill-classics) dengan palet biru terang.

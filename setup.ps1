@@ -1,14 +1,36 @@
 param([string]$BasePython, [string]$UvPath)
-. "$PSScriptRoot\scripts\project-env.ps1"
-if (-not $BasePython) {
-    $BasePython = Join-Path (Split-Path -Parent $ProjectRoot) 'tabular_ml\.local\python\cpython-3.12.13-windows-x86_64-none\python.exe'
+$ErrorActionPreference = 'Stop'
+$ProjectRoot = $PSScriptRoot
+$ProjectPython = Join-Path $ProjectRoot '.venv\Scripts\python.exe'
+$LocalRoot = Join-Path $ProjectRoot '.local'
+foreach ($Path in @('tmp', 'cache\uv', 'cache\pip', 'cache\torch', 'cache\xdg', 'config\ultralytics', 'matplotlib', 'state')) {
+    New-Item -ItemType Directory -Path (Join-Path $LocalRoot $Path) -Force | Out-Null
 }
-if (-not $UvPath) {
-    $UvPath = Join-Path (Split-Path -Parent $ProjectRoot) 'tabular_ml\.local\tools\uv.exe'
+$env:TEMP = Join-Path $LocalRoot 'tmp'
+$env:TMP = $env:TEMP
+$env:TMPDIR = $env:TEMP
+$env:UV_CACHE_DIR = Join-Path $LocalRoot 'cache\uv'
+$env:PIP_CACHE_DIR = Join-Path $LocalRoot 'cache\pip'
+$env:TORCH_HOME = Join-Path $LocalRoot 'cache\torch'
+$env:XDG_CACHE_HOME = Join-Path $LocalRoot 'cache\xdg'
+$env:XDG_STATE_HOME = Join-Path $LocalRoot 'state'
+$env:YOLO_CONFIG_DIR = Join-Path $LocalRoot 'config\ultralytics'
+$env:MPLCONFIGDIR = Join-Path $LocalRoot 'matplotlib'
+$env:PYTHONDONTWRITEBYTECODE = '1'
+$env:PYTHONUTF8 = '1'
+$env:YOLO_AUTOINSTALL = 'false'
+if (-not $UvPath) { throw 'Berikan -UvPath ke uv.exe di D:.' }
+if (-not (Test-Path -LiteralPath $UvPath)) { throw "uv tidak ditemukan: $UvPath" }
+$ProjectDrive = [IO.Path]::GetPathRoot($ProjectRoot)
+if ([IO.Path]::GetPathRoot((Resolve-Path -LiteralPath $UvPath).Path) -ne $ProjectDrive) {
+    throw "uv.exe harus berada pada drive proyek ($ProjectDrive)."
 }
-if (-not (Test-Path -LiteralPath $BasePython)) { throw 'Base Python tidak ditemukan. Berikan -BasePython dengan path Python di D:.' }
-if (-not (Test-Path -LiteralPath $UvPath)) { throw 'uv tidak ditemukan. Berikan -UvPath dengan path uv.exe yang tersedia.' }
 if (-not (Test-Path -LiteralPath $ProjectPython)) {
+    if (-not $BasePython) { throw 'Berikan -BasePython ke Python 3.12 di D: untuk membuat .venv.' }
+    if (-not (Test-Path -LiteralPath $BasePython)) { throw "Base Python tidak ditemukan: $BasePython" }
+    if ([IO.Path]::GetPathRoot((Resolve-Path -LiteralPath $BasePython).Path) -ne $ProjectDrive) {
+        throw "Base Python harus berada pada drive proyek ($ProjectDrive)."
+    }
     & $UvPath venv --python $BasePython (Join-Path $ProjectRoot '.venv')
     if ($LASTEXITCODE -ne 0) { throw 'Pembuatan venv gagal.' }
 }

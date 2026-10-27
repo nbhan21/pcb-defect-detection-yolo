@@ -57,7 +57,7 @@ def create_app(service=None) -> FastAPI:
             )
         yield
 
-    application = FastAPI(title="PCB Inspector", version="1.0.0", lifespan=lifespan)
+    application = FastAPI(title="pcb-defect-detection-yolo", version="1.0.0", lifespan=lifespan)
     application.state.service = service
     application.state.inference_lock = threading.Lock()
 

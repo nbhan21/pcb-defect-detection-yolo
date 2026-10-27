@@ -1,4 +1,4 @@
-# Membaca Alur PCB Inspect
+# Membaca alur PCB Defect Detection
 
 Dokumen ini menjelaskan konsep dan cara membaca kode. Untuk perintah yang dijalankan secara berurutan, hasil tiap tahap, serta cara membuka website, ikuti [Panduan praktik dari awal](getting-started.md).
 
@@ -10,7 +10,7 @@ Pada gambar 600 x 600, ilustrasi tersebut memiliki pusat (300,300), lebar 60, ti
 
 ## Persiapan data
 
-`scripts/prepare_data.py` memanggil `pcb_inspector/data.py`. Fungsi persiapan memeriksa pasangan gambar/label, nilai koordinat dan class ID, lalu membuat data turunan. Perubahan nama `_256` ke pasangan `_600` tidak mengubah angka anotasi; kesesuaiannya diperiksa melalui gambar bounding boxes.
+`scripts/prepare_data.py` memanggil `pcb_inspector/data.py`. Dataset Kaggle sudah memiliki anotasi YOLO; fungsi persiapan memeriksa pasangan gambar/label, nilai koordinat dan class ID, lalu membuat data turunan. Perubahan nama `_256` ke pasangan `_600` tidak mengubah angka anotasi; kesesuaiannya diperiksa melalui preview bounding boxes.
 
 Split tidak mengikuti pembagian bawaan Kaggle. Nama sumber seperti `light_01` dipakai untuk mengelompokkan gambar dan rotasinya. Jika varian yang berkerabat masuk train dan test, evaluasi dapat memberi kesan kemampuan generalisasi yang terlalu baik. Manifest merekam family, hash file, sumber, dan split agar pilihan ini dapat diaudit.
 
@@ -18,9 +18,9 @@ Split tidak mengikuti pembagian bawaan Kaggle. Nama sumber seperti `light_01` di
 
 `scripts/train.py` memuat pretrained `yolo11n.pt` dan melanjutkan training pada enam kelas PCB. Backbone dan bagian model lain yang dapat dilatih ikut diperbarui. Bobot pretrained memberi titik awal untuk pola visual; label COCO tidak otomatis menjadi label cacat PCB.
 
-Siklus training: prediksi gambar train, bandingkan dengan kelas/kotak anotasi, hitung loss, lalu optimizer memperbarui bobot. Validation mengukur hasil pada data yang tidak dipakai untuk update bobot. Checkpoint terbaik dipilih dengan validation. Smoke run hanya membuktikan pipeline dan penggunaan hardware bekerja; performanya tidak dianggap hasil akhir.
+Siklus training: prediksi gambar train, bandingkan dengan kelas/kotak anotasi, hitung loss, lalu optimizer memperbarui bobot. Validation mengukur hasil pada data yang tidak dipakai untuk update bobot. Checkpoint terbaik dipilih dengan validation. Tiap run baru disimpan di `experiments/<nama>/`, sehingga baseline lama tetap dapat dibandingkan.
 
-`scripts/evaluate.py` memilih confidence dari validation, kemudian mengevaluasi test setelah pilihan dibekukan. Precision menjawab berapa banyak temuan yang benar; recall menjawab berapa banyak cacat anotasi yang berhasil ditemukan. mAP memperhitungkan ranking confidence dan kecocokan lokasi; mAP50-95 lebih ketat terhadap posisi kotak daripada mAP50.
+`scripts/evaluate.py` memilih confidence dari validation, kemudian mengevaluasi test setelah pilihan dibekukan. `scripts/predict.py` memperlihatkan prediksi satu gambar secara langsung dengan `YOLO(...).predict(...)`. `scripts/prepare_model.py` menyalin checkpoint `.pt` yang sudah dievaluasi dan membuat metadata untuk FastAPI. Precision menjawab berapa banyak temuan yang benar; recall menjawab berapa banyak cacat anotasi yang berhasil ditemukan. mAP memperhitungkan ranking confidence dan kecocokan lokasi; mAP50-95 lebih ketat terhadap posisi kotak daripada mAP50.
 
 ## Dari tombol web sampai prediksi
 
@@ -49,7 +49,7 @@ Perubahan layout PCB dan kondisi foto dapat mengubah hasil. Proyek membuktikan p
 
 Pada gambar validation `l_light_07_missing_hole_01_1_600.jpg`, aplikasi final pada CUDA menghasilkan satu kandidat `missing_hole`, class ID 2, confidence sekitar 79,0%, dan kotak sekitar `[299.6, 163.4, 333.8, 197.2]`. Angka dibulatkan dari output nyata; ini satu contoh input, bukan gambaran akurasi seluruh dataset.
 
-Buka `pcb_inspector/api.py`: `UploadFile` menerima file multipart dan `Form` menerima confidence. Route memeriksa kesiapan model dan input, lalu memanggil pekerjaan decode/inference melalui `run_in_threadpool`. Route async tetap dapat melayani health ketika pekerjaan yang memblokir berjalan di thread. Lock menolak inference kedua dengan 429; pengujian concurrency memeriksa perilaku ini.
+Buka `pcb_inspector/api.py`: `UploadFile` menerima file multipart dan `Form` menerima confidence. Route memeriksa kesiapan model dan input, lalu memanggil pekerjaan decode/inference melalui `run_in_threadpool`. Route async tetap dapat melayani health ketika pekerjaan yang memblokir berjalan di thread. Lock menolak inference kedua dengan 429.
 
 Model dimuat sekali melalui lifespan aplikasi. `PCBDetector` mengubah output tensor menjadi dictionary Python yang berisi nama kelas, skor, koordinat dan PNG. FastAPI menyerialisasikannya menjadi JSON. `web/app.js` menerima JSON melalui fetch, membuat elemen tabel dan blob unduhan. Hash checkpoint pada health dan response dijaga konsisten; pergantian model membatalkan hasil lama agar metadata tidak tertukar.
 

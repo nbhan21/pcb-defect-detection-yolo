@@ -4,17 +4,18 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="color-scheme" content="light">
-  <meta name="description" content="Asisten inspeksi visual PCB polos. Tinjau lokasi dan jenis cacat menggunakan model YOLO yang di-fine-tune.">
-  <title>PCB Inspect — Inspeksi Visual</title>
+  <meta name="description" content="Deteksi enam jenis cacat pada gambar PCB polos menggunakan YOLO11n dan dataset PCB yang sudah berlabel.">
+  <title>pcb-defect-detection-yolo</title>
   <link rel="stylesheet" href="/styles.css">
+  <link rel="stylesheet" href="/overview.css">
   <script type="module" src="/app.js"></script>
 </head>
 <body>
   <a class="skip-link" href="#inspection">Langsung ke inspeksi</a>
   <header class="topbar">
-    <a class="brand" href="/" aria-label="PCB Inspect, halaman utama">
+    <a class="brand" href="/" aria-label="pcb-defect-detection-yolo, halaman utama">
       <span class="brand-mark" aria-hidden="true"><svg viewBox="0 0 32 32" fill="none"><path d="M7 7h9v9h9M7 25h9V16M7 7v18"/><path d="M3 7h8M3 25h8M25 12v8M12 3v8"/><rect x="12" y="12" width="8" height="8"/></svg></span>
-      <span>PCB<span class="brand-divider">/</span>INSPECT</span>
+      <span class="brand-name">pcb-defect-detection-yolo</span>
     </a>
     <div class="topbar-right">
       <span class="workspace-label">LOCAL WORKSPACE</span>
@@ -25,15 +26,20 @@
   <main class="shell">
     <section class="intro" aria-labelledby="page-title">
       <div class="intro-copy">
-        <p class="eyebrow"><span class="square" aria-hidden="true"></span> ASISTEN INSPEKSI VISUAL</p>
-        <h1 id="page-title">DETAIL KECIL.<br><span>PERIKSA LEBIH JELAS.</span></h1>
-        <p class="intro-description">Tinjau lokasi dan jenis cacat pada jalur PCB polos. Unggah satu gambar, lalu periksa hasil deteksi sebelum mengambil keputusan.</p>
+        <h1 id="page-title">Deteksi cacat pada PCB polos</h1>
+        <p class="intro-description">Proyek ini menggunakan model pretrained YOLO11n dengan enam kelas custom untuk mendeteksi enam jenis cacat pada gambar PCB polos. Dataset training berasal dari <a href="https://www.kaggle.com/datasets/norbertelter/pcb-defect-dataset/data" target="_blank" rel="noopener noreferrer">PCB Defect dataset di Kaggle</a>, yang diunggah akun <code>norbertelter</code> dan sudah dilengkapi anotasi serta label YOLO. Upload gambar untuk mendeteksi cacat pada bagian PCB.</p>
       </div>
-      <div class="scope-card">
-        <span class="micro-label">LINGKUP MODEL</span>
-        <strong>06<span>KELAS CACAT</span></strong>
-        <p>PCB polos · Gambar statis<br>Hasil dapat diunduh</p>
-        <span class="scope-cross" aria-hidden="true">+</span>
+    </section>
+
+    <section class="defect-guide" aria-labelledby="defect-guide-title">
+      <div class="defect-guide-heading"><h2 id="defect-guide-title">Jenis cacat yang dideteksi</h2><span>06 KELAS</span></div>
+      <div class="defect-grid">
+        <article class="defect-card"><div class="defect-visual" role="img" aria-label="Contoh gambar mouse bite belum tersedia"><span>CONTOH GAMBAR MENYUSUL</span></div><div class="defect-card-copy"><h3>mouse_bite</h3><p>Bagian tepi jalur tembaga yang terkikis atau berlekuk.</p></div></article>
+        <article class="defect-card"><div class="defect-visual" role="img" aria-label="Contoh gambar spur belum tersedia"><span>CONTOH GAMBAR MENYUSUL</span></div><div class="defect-card-copy"><h3>spur</h3><p>Tonjolan kecil yang muncul pada jalur tembaga.</p></div></article>
+        <article class="defect-card"><div class="defect-visual" role="img" aria-label="Contoh gambar missing hole belum tersedia"><span>CONTOH GAMBAR MENYUSUL</span></div><div class="defect-card-copy"><h3>missing_hole</h3><p>Lubang pada pad PCB yang tidak terbentuk.</p></div></article>
+        <article class="defect-card"><div class="defect-visual" role="img" aria-label="Contoh gambar short belum tersedia"><span>CONTOH GAMBAR MENYUSUL</span></div><div class="defect-card-copy"><h3>short</h3><p>Dua jalur tembaga yang seharusnya terpisah tampak tersambung.</p></div></article>
+        <article class="defect-card"><div class="defect-visual" role="img" aria-label="Contoh gambar open circuit belum tersedia"><span>CONTOH GAMBAR MENYUSUL</span></div><div class="defect-card-copy"><h3>open_circuit</h3><p>Jalur tembaga yang tampak terputus.</p></div></article>
+        <article class="defect-card"><div class="defect-visual" role="img" aria-label="Contoh gambar spurious copper belum tersedia"><span>CONTOH GAMBAR MENYUSUL</span></div><div class="defect-card-copy"><h3>spurious_copper</h3><p>Sisa tembaga di area yang tidak semestinya.</p></div></article>
       </div>
     </section>
 
@@ -107,7 +113,7 @@
       <p class="table-note">Koordinat menggunakan piksel pada gambar yang orientasinya sudah disesuaikan. Confidence adalah skor model, bukan kepastian bahwa PCB cacat.</p>
     </section>
 
-    <footer class="footer"><p><strong>BATAS PENGGUNAAN</strong> Demo untuk meninjau cacat visual PCB polos yang menyerupai dataset. Hasil tidak memastikan kelayakan elektrik atau menggantikan pemeriksaan QC.</p><span>PCB INSPECT<span aria-hidden="true"> / </span>LOCAL</span></footer>
+    <footer class="footer"><p><strong>BATAS PENGGUNAAN</strong> Demo untuk meninjau cacat visual PCB polos yang menyerupai dataset. Hasil tidak memastikan kelayakan elektrik atau menggantikan pemeriksaan QC.</p></footer>
   </main>
 </body>
 </html>

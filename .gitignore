@@ -4,6 +4,7 @@
 data/
 models/
 runs/
+experiments/
 __pycache__/
 *.py[cod]
 .pytest_cache/
