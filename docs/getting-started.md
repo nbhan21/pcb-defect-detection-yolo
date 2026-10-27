@@ -42,7 +42,7 @@ Baca `scripts/train.py`. Panggilan intinya adalah `model = YOLO('.../yolo11n.pt'
 & .\.venv\Scripts\python.exe -B -m scripts.train --experiment belajar-01 --epochs 40 --batch 4
 ```
 
-Periksa `experiments/belajar-01/training/results.csv`, `results.png`, plot lain yang dihasilkan Ultralytics, dan `weights/best.pt`. Batch 4 adalah titik awal untuk GPU 4 GB pada mesin ini; bila kehabisan VRAM, gunakan eksperimen baru dengan `--batch 2` atau `--batch 1`. Training default memakai `--device 0`; gunakan `--device cpu` hanya jika memang ingin training di CPU. Opsi `--time-hours 1` tersedia bila perlu batas waktu dan **menggantikan** batas `--epochs` menurut Ultralytics.
+Periksa `experiments/belajar-01/training/results.csv`, `results.png`, plot lain yang dihasilkan Ultralytics, dan `weights/best.pt`. Batch 4 adalah titik awal untuk GPU 4 GB pada mesin ini; bila kehabisan VRAM, gunakan eksperimen baru dengan `--batch 2` atau `--batch 1`. Training default memakai `--device 0`; gunakan `--device cpu` hanya jika memang ingin training di CPU. `patience=8` pada `model.train(...)` mengaktifkan early stopping, jadi training bisa berhenti sebelum mencapai `--epochs` jika hasil validation tidak membaik.
 
 ## 3. Evaluasi
 

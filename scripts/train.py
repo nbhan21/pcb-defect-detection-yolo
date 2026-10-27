@@ -11,7 +11,7 @@ PRETRAINED_WEIGHTS = PROJECT_ROOT / 'models' / 'base' / 'yolo11n.pt'
 
 
 def train_model(paths, data: Path, weights: Path, *, epochs: int = 40, batch: int = 4,
-                device: str = '0', time_hours: float | None = None) -> Path:
+                device: str = '0') -> Path:
     if not data.is_file() or not weights.is_file():
         raise FileNotFoundError('Dataset atau yolo11n.pt belum tersedia. Jalankan tahap persiapan data.')
     if paths.training.exists():
@@ -20,12 +20,10 @@ def train_model(paths, data: Path, weights: Path, *, epochs: int = 40, batch: in
     from ultralytics import YOLO
 
     model = YOLO(str(weights))
-    # Ultralytics' time limit overrides epochs when supplied.
-    limit = {'time': time_hours} if time_hours is not None else {'epochs': epochs}
     model.train(
-        data=str(data), batch=batch, imgsz=640, device=device, workers=0,
+        data=str(data), epochs=epochs, batch=batch, imgsz=640, device=device, workers=0,
         patience=8, plots=True, project=str(paths.root), name='training',
-        exist_ok=False, **limit,
+        exist_ok=False,
     )
     return paths.training / 'weights' / 'best.pt'
 
@@ -37,14 +35,12 @@ def main(argv=None):
     parser.add_argument('--epochs', type=int, default=40)
     parser.add_argument('--batch', type=int, default=4)
     parser.add_argument('--device', choices=('0', 'cpu'), default='0')
-    parser.add_argument('--time-hours', type=float, help='Opsional; menggantikan batas epochs')
     args = parser.parse_args(argv)
-    if args.epochs < 1 or args.batch < 1 or (args.time_hours is not None and args.time_hours <= 0):
-        parser.error('epochs, batch dan time-hours harus positif')
+    if args.epochs < 1 or args.batch < 1:
+        parser.error('epochs dan batch harus positif')
     paths = experiment_paths(PROJECT_ROOT, args.experiment)
     best = train_model(paths, DATASET_YAML, PRETRAINED_WEIGHTS,
-                       epochs=args.epochs, batch=args.batch, device=args.device,
-                       time_hours=args.time_hours)
+                       epochs=args.epochs, batch=args.batch, device=args.device)
     print(f'Training selesai. Periksa {best}')
 
 
