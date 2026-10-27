@@ -1,89 +1,62 @@
-"""Stage 4: run YOLO on one image and inspect its PNG and JSON result."""
+"""Predict defects in one PCB image using the trained best.pt."""
 
 import argparse
 import json
 from pathlib import Path
 
-from pcb_inspector.constants import CLASS_NAMES
 from pcb_inspector.workflow import PROJECT_ROOT, configure_runtime, experiment_paths
-from scripts.evaluate import training_checkpoint
 
 
-def parse_args(argv=None):
-    parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument('--experiment', required=True)
-    parser.add_argument('--image', type=Path, required=True, help='Satu gambar PCB JPG atau PNG di D:')
-    parser.add_argument('--device', choices=('auto', 'cpu', 'cuda:0'), default='auto')
-    return parser.parse_args(argv)
-
-
-def selected_confidence(paths) -> float:
-    """Reuse the threshold chosen on validation, never pick one from test."""
-    report_path = paths.evaluation / 'evaluation.json'
-    if not report_path.is_file():
-        raise FileNotFoundError(f'Evaluasi belum tersedia: {report_path}')
-    report = json.loads(report_path.read_text(encoding='utf-8'))
-    threshold = float(report['validation']['selected_confidence']['confidence'])
-    if not 0.05 <= threshold <= 0.95:
-        raise ValueError('Confidence dari validation tidak valid')
-    return threshold
-
-
-def predict_image(paths, image: Path, requested_device: str) -> tuple[Path, Path]:
-    """Keep the familiar Ultralytics predict call visible in this stage."""
-    checkpoint = training_checkpoint(paths)
-    confidence = selected_confidence(paths)
+def predict_image(paths, checkpoint: Path, image: Path, *, confidence: float = 0.25) -> tuple[Path, Path]:
+    if not checkpoint.is_file():
+        raise FileNotFoundError(f'Checkpoint tidak ditemukan: {checkpoint}')
     if not image.is_file():
-        raise FileNotFoundError(f'Gambar belum tersedia: {image}')
+        raise FileNotFoundError(f'Gambar tidak ditemukan: {image}')
+    if not 0 < confidence <= 1:
+        raise ValueError('Confidence harus lebih dari 0 dan paling tinggi 1')
+
     png_path = paths.predictions / f'{image.stem}-prediction.png'
     json_path = paths.predictions / f'{image.stem}-prediction.json'
     if png_path.exists() or json_path.exists():
-        raise FileExistsError('Prediksi untuk nama gambar ini sudah ada; gunakan gambar atau eksperimen lain.')
+        raise FileExistsError(f'Hasil gambar ini sudah ada: {png_path}')
 
-    import torch
     from ultralytics import YOLO
 
-    device = ('cuda:0' if torch.cuda.is_available() else 'cpu') if requested_device == 'auto' else requested_device
-    if device == 'cuda:0' and not torch.cuda.is_available():
-        raise RuntimeError('CUDA belum tersedia; gunakan --device cpu')
     model = YOLO(str(checkpoint))
-    if len(model.names) != len(CLASS_NAMES) or tuple(model.names[i] for i in range(6)) != CLASS_NAMES:
-        raise ValueError('Mapping kelas checkpoint tidak sesuai dataset PCB')
-    results = model.predict(
-        source=str(image), conf=confidence, iou=0.5, imgsz=640,
-        device=device, verbose=False, max_det=300,
-    )
-    result = results[0]
+    result = model.predict(source=str(image), conf=confidence, imgsz=640, verbose=False)[0]
+
     paths.predictions.mkdir(parents=True, exist_ok=True)
     result.save(filename=str(png_path))
     detections = []
     if result.boxes is not None:
-        for x1, y1, x2, y2, score, class_id in result.boxes.data.cpu().tolist():
+        boxes = result.boxes.xyxy.cpu().tolist()
+        scores = result.boxes.conf.cpu().tolist()
+        classes = result.boxes.cls.cpu().tolist()
+        for box, score, class_id in zip(boxes, scores, classes, strict=True):
             class_id = int(class_id)
             detections.append({
                 'class_id': class_id,
-                'class_name': CLASS_NAMES[class_id],
+                'class_name': model.names[class_id],
                 'confidence': score,
-                'bbox_xyxy': [x1, y1, x2, y2],
+                'bbox_xyxy': box,
             })
-    report = {
-        'source_image': str(image.resolve()),
-        'checkpoint': str(checkpoint),
-        'device': device,
-        'confidence_threshold': confidence,
-        'detections': detections,
-        'annotated_image': str(png_path),
-    }
+    report = {'source_image': str(image.resolve()), 'checkpoint': str(checkpoint),
+              'confidence_threshold': confidence, 'detections': detections}
     json_path.write_text(json.dumps(report, indent=2), encoding='utf-8')
     return png_path, json_path
 
 
 def main(argv=None):
     configure_runtime()
-    args = parse_args(argv)
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument('--experiment', required=True)
+    parser.add_argument('--image', type=Path, required=True)
+    parser.add_argument('--conf', type=float, default=0.25)
+    args = parser.parse_args(argv)
     paths = experiment_paths(PROJECT_ROOT, args.experiment)
-    png_path, json_path = predict_image(paths, args.image, args.device)
-    print(f'Prediksi selesai. Periksa {png_path} dan {json_path}')
+    best = paths.training / 'weights' / 'best.pt'
+    png, report = predict_image(paths, best, args.image, confidence=args.conf)
+    print(f'Prediksi selesai: {png} dan {report}')
 
 
 if __name__ == '__main__':

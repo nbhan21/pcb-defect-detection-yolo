@@ -13,7 +13,6 @@ PROJECT_ROOT = Path(__file__).resolve().parents[1]
 @dataclass(frozen=True)
 class ExperimentPaths:
     root: Path
-    prepared: Path
     training: Path
     evaluation: Path
     predictions: Path
@@ -27,7 +26,6 @@ def experiment_paths(project_root: Path, name: str) -> ExperimentPaths:
     root = Path(project_root) / "experiments" / name
     return ExperimentPaths(
         root=root,
-        prepared=root / "prepared",
         training=root / "training",
         evaluation=root / "evaluation",
         predictions=root / "predictions",

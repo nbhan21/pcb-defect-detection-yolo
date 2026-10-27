@@ -1,56 +1,37 @@
 # Membaca alur PCB Defect Detection
 
-Dokumen ini menjelaskan konsep dan cara membaca kode. Untuk perintah yang dijalankan secara berurutan, hasil tiap tahap, serta cara membuka website, ikuti [Panduan praktik dari awal](getting-started.md).
+Dokumen ini menjelaskan hubungan antar-tahap. Untuk perintah yang dijalankan satu per satu dan lokasi hasilnya, ikuti [panduan praktik](getting-started.md).
 
-## Apa yang dipelajari model
+## Dari gambar ke label
 
-Satu baris label YOLO memuat `class_id x_center y_center width height`. Empat koordinat adalah rasio terhadap ukuran gambar, dari 0 sampai 1. Misalnya `4 0.5 0.5 0.1 0.04` berarti cacat `open_circuit` dengan pusat di tengah gambar, lebar 10% dan tinggi 4% gambar. Nilai ini ilustrasi format, bukan output model atau anotasi yang telah diverifikasi.
+Satu baris label YOLO berisi `class_id x_center y_center width height`. Empat koordinat dinormalisasi ke rentang 0–1. Contoh `4 0.5 0.5 0.1 0.04` berarti kelas `open_circuit` di sekitar tengah gambar. Pada gambar 600 × 600, lebar kotaknya 60 piksel dan tingginya 24 piksel. Ini hanya contoh format.
 
-Pada gambar 600 x 600, ilustrasi tersebut memiliki pusat (300,300), lebar 60, tinggi 24; sudut kotaknya adalah (270,288) dan (330,312). Web mengembalikan format sudut piksel `bbox_xyxy`, sehingga dapat langsung dibandingkan dengan gambar hasil.
+Ultralytics mencari label dengan nama dasar yang sama seperti gambar di folder `labels/` yang sejajar dengan `images/`. Pada dataset raw Kaggle, sebagian gambar `..._600.jpg` justru mempunyai label `..._256.txt`. Jika dipakai apa adanya, sebagian anotasi tidak akan ditemukan. `scripts/prepare_data.py` membuat salinan `data/kaggle-corrected/` dan memberi **nama salinan label** sesuai gambar. Byte gambar, isi label, serta penempatan train/val/test bawaan Kaggle tetap sama. Dataset raw tidak diedit, dan ZIP tidak dibaca oleh skrip.
 
-## Persiapan data
-
-`scripts/prepare_data.py` memanggil `pcb_inspector/data.py`. Dataset Kaggle sudah memiliki anotasi YOLO; fungsi persiapan memeriksa pasangan gambar/label, nilai koordinat dan class ID, lalu membuat data turunan. Perubahan nama `_256` ke pasangan `_600` tidak mengubah angka anotasi; kesesuaiannya diperiksa melalui preview bounding boxes.
-
-Split tidak mengikuti pembagian bawaan Kaggle. Nama sumber seperti `light_01` dipakai untuk mengelompokkan gambar dan rotasinya. Jika varian yang berkerabat masuk train dan test, evaluasi dapat memberi kesan kemampuan generalisasi yang terlalu baik. Manifest merekam family, hash file, sumber, dan split agar pilihan ini dapat diaudit.
+Skrip mengaudit semua pasangan sebelum menyalin. Gambar tanpa label, label tanpa gambar, atau pasangan ambigu menghasilkan error. Ringkasan jumlahnya disimpan di `audit.json`; file `dataset.yaml` memberi Ultralytics lokasi ketiga split dan urutan enam kelas.
 
 ## Training dan checkpoint
 
-`scripts/train.py` memuat pretrained `yolo11n.pt` dan melanjutkan training pada enam kelas PCB. Backbone dan bagian model lain yang dapat dilatih ikut diperbarui. Bobot pretrained memberi titik awal untuk pola visual; label COCO tidak otomatis menjadi label cacat PCB.
+`scripts/train.py` memuat pretrained YOLO11n, lalu menjalankan `model.train(...)` pada salinan data yang sudah cocok namanya. Bobot model diperbarui memakai gambar train dan anotasinya. Validation dipakai Ultralytics selama training untuk memilih `weights/best.pt`; test disimpan untuk pemeriksaan setelah training. Bobot pretrained adalah titik awal, sedangkan enam kelas PCB berasal dari label dataset ini.
 
-Siklus training: prediksi gambar train, bandingkan dengan kelas/kotak anotasi, hitung loss, lalu optimizer memperbarui bobot. Validation mengukur hasil pada data yang tidak dipakai untuk update bobot. Checkpoint terbaik dipilih dengan validation. Tiap run baru disimpan di `experiments/<nama>/`, sehingga baseline lama tetap dapat dibandingkan.
+Hasil setiap run berada di `experiments/<nama>/training/`. Periksa `results.csv` dan plot training untuk melihat perkembangan loss dan metrik. `best.pt` dapat berbeda dari `last.pt`: yang pertama dipilih berdasarkan validation, yang kedua berasal dari akhir training. Opsi seperti epoch, batch, dan device terlihat langsung pada pemanggilan `model.train(...)`, supaya perubahan konfigurasi mudah dipahami.
 
-`scripts/evaluate.py` memilih confidence dari validation, kemudian mengevaluasi test setelah pilihan dibekukan. `scripts/predict.py` memperlihatkan prediksi satu gambar secara langsung dengan `YOLO(...).predict(...)`. `scripts/prepare_model.py` menyalin checkpoint `.pt` yang sudah dievaluasi dan membuat metadata untuk FastAPI. Precision menjawab berapa banyak temuan yang benar; recall menjawab berapa banyak cacat anotasi yang berhasil ditemukan. mAP memperhitungkan ranking confidence dan kecocokan lokasi; mAP50-95 lebih ketat terhadap posisi kotak daripada mAP50.
+## Evaluasi dan prediksi
 
-## Dari tombol web sampai prediksi
+`scripts/evaluate.py` memuat `best.pt` dan memanggil `model.val(data=..., split='val')`, kemudian `split='test'`. Hasil utama adalah precision, recall, mAP50, dan mAP50–95 dari Ultralytics. mAP menilai peringkat confidence bersama kecocokan lokasi dan kelas; mAP50–95 memakai beberapa ambang IoU sehingga lebih ketat terhadap lokasi kotak. [Dokumentasi validasi Ultralytics](https://docs.ultralytics.com/modes/val) menjelaskan metrik tersebut.
 
-1. `web/app.js` membaca file pilihan dan mengirim `FormData` melalui `fetch('/api/inspect')`. File dan confidence menjadi input request.
-2. `pcb_inspector/api.py` memeriksa kesiapan model, confidence, ukuran file dan format gambar. Pillow mendecode byte asli; nama ekstensi saja tidak dianggap bukti format.
-3. Orientasi EXIF dinormalisasi, kemudian gambar RGB masuk ke `PCBDetector.inspect` di `pcb_inspector/inference.py`.
-4. Model menjalankan inference. Hasilnya diubah menjadi class ID, nama kelas, confidence dan sudut bounding box pada ukuran gambar asli yang telah diorientasikan.
-5. Backend menggambar kotak pada salinan gambar, membuat PNG dalam memori, dan mengembalikan JSON berisi prediksi dan PNG sebagai data URI.
-6. Frontend menampilkan gambar hasil, menghitung tampilan berdasarkan data response, dan membentuk unduhan PNG/CSV. Tidak ada record inspeksi permanen di database.
+`scripts/predict.py` memakai `YOLO(best.pt).predict(...)` untuk satu gambar. Tahap ini berdiri sendiri setelah training; ia tidak membaca laporan evaluasi. Confidence default 0,25 dapat diubah saat menjalankan skrip. Confidence lebih rendah cenderung menampilkan lebih banyak kandidat, tetapi dapat menambah false positive; confidence lebih tinggi dapat melewatkan cacat yang lemah. Hasil satu gambar berguna untuk inspeksi visual, bukan pengganti metrik seluruh dataset.
 
-Training tidak terjadi ketika tombol inspeksi ditekan. Web memuat checkpoint sekali saat startup, lalu menggunakannya untuk prediksi. Hash checkpoint dan mapping kelas diperiksa untuk mencegah weights/metadata yang salah dipakai sebagai detector PCB.
+Metrik validation/test menggunakan prosedur bawaan Ultralytics, sehingga angka precision dan recall ringkasannya tidak harus sama dengan deteksi yang terlihat pada satu confidence prediksi. Seaborn, bila dipakai, berfungsi untuk visualisasi; metrik deteksi sudah dihitung oleh Ultralytics.
 
-## Mengubah confidence
+## Dari checkpoint ke website
 
-Batas confidence yang lebih rendah dapat menampilkan lebih banyak kandidat sekaligus menambah false positive. Batas lebih tinggi dapat menyembunyikan kandidat lemah sekaligus menambah cacat yang terlewat. Nilai default dipilih dari validation; menggeser slider di demo adalah eksplorasi inference, bukan training ulang.
+`scripts/prepare_model.py` menyalin `best.pt` ke folder deployment eksperimen dan menulis metadata sederhana. File `.pt` langsung dipakai oleh FastAPI; tahap ini tidak mengekspor ONNX. Saat `scripts/serve.py` dijalankan, `pcb_inspector/inference.py` memuat model sekali dan memastikan nama enam kelas pada checkpoint sesuai kelas yang ditampilkan website.
 
-Saat file atau confidence berubah, hasil lama dibatalkan agar unduhan tidak tertukar dengan input baru. Response dari request yang sudah kedaluwarsa juga diabaikan. Jika ada proses inference lain, API memberi 429 agar satu model tidak dipakai bersamaan di luar batas yang direncanakan.
+Di browser, `web/app.js` mengirim gambar dan confidence ke `POST /api/inspect`. `pcb_inspector/api.py` memeriksa ukuran dan format gambar sebelum memanggil detector. Hasil YOLO diubah menjadi nama kelas, confidence, koordinat kotak, dan PNG anotasi. Website menampilkan hasil dan menyediakan unduhan PNG/CSV; tidak ada database atau riwayat inspeksi. Mengunggah gambar **tidak** melatih model lagi.
 
-## Membaca kesalahan
+## Cara menafsirkan hasil proyek ini
 
-Periksa gambar dengan ground truth dan prediksi: cacat terlewat adalah false negative, kotak pada bagian normal adalah false positive, kelas yang tertukar adalah salah klasifikasi, dan kotak yang meleset dapat gagal pada batas IoU lebih ketat. Metrik agregat tidak menggantikan pemeriksaan contoh ini.
+Keenam jenis cacat yang dipelajari berasal dari PCB polos. Model tidak menilai fungsi listrik, solder, atau komponen terpasang. Dataset evaluasi tidak mengukur false alarm pada PCB normal.
 
-Perubahan layout PCB dan kondisi foto dapat mengubah hasil. Proyek membuktikan pipeline dan performa pada data evaluasi yang dicatat; pemeriksaan kelayakan PCB fisik memerlukan prosedur lain.
-
-## Menelusuri satu inspeksi aktual
-
-Pada gambar validation `l_light_07_missing_hole_01_1_600.jpg`, aplikasi final pada CUDA menghasilkan satu kandidat `missing_hole`, class ID 2, confidence sekitar 79,0%, dan kotak sekitar `[299.6, 163.4, 333.8, 197.2]`. Angka dibulatkan dari output nyata; ini satu contoh input, bukan gambaran akurasi seluruh dataset.
-
-Buka `pcb_inspector/api.py`: `UploadFile` menerima file multipart dan `Form` menerima confidence. Route memeriksa kesiapan model dan input, lalu memanggil pekerjaan decode/inference melalui `run_in_threadpool`. Route async tetap dapat melayani health ketika pekerjaan yang memblokir berjalan di thread. Lock menolak inference kedua dengan 429.
-
-Model dimuat sekali melalui lifespan aplikasi. `PCBDetector` mengubah output tensor menjadi dictionary Python yang berisi nama kelas, skor, koordinat dan PNG. FastAPI menyerialisasikannya menjadi JSON. `web/app.js` menerima JSON melalui fetch, membuat elemen tabel dan blob unduhan. Hash checkpoint pada health dan response dijaga konsisten; pergantian model membatalkan hasil lama agar metadata tidak tertukar.
-
-Eksperimen final menghasilkan validation mAP50 87,11% dan test 65,80%. Gap ini menunjukkan mengapa web yang berhasil menjalankan model belum berarti model andal di semua board. Baca `reports/error-analysis.md` bersama visual lokal untuk memahami kesalahan model sebelum menafsirkan confidence.
+Split train/val/test bawaan Kaggle kira-kira 80/10/10 dan mencampur kelompok nama `light_##` antar-split. Karena itu, angka test mencerminkan pembagian dataset tersebut; ia tidak otomatis menunjukkan performa pada kelompok sumber yang sepenuhnya baru. Gambar dari kelompok yang berbeda, pencahayaan lain, atau kamera lain perlu diuji tersendiri bila nanti proyek dipakai lebih luas. Hasil dalam `reports/` adalah baseline lama dari pembagian berbeda dan tidak boleh disamakan dengan laporan eksperimen baru.

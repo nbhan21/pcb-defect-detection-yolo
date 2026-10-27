@@ -77,7 +77,7 @@ class PCBDetector:
 
     def __init__(self, model_path: Path, metadata_path: Path, device: str = "auto"):
         self.ready = False
-        self.message = "Model PCB belum tersedia. Jalankan training dan evaluasi terlebih dahulu."
+        self.message = "Model PCB belum tersedia. Jalankan training dan siapkan model untuk website."
         self.device = "unavailable"
         self.model_info = None
         self.default_confidence = DEFAULT_CONFIDENCE
@@ -89,8 +89,6 @@ class PCBDetector:
             metadata = json.loads(metadata_path.read_text(encoding="utf-8-sig"))
             with model_path.open("rb") as weights:
                 digest = hashlib.file_digest(weights, "sha256").hexdigest()
-            if metadata.get("checkpoint_sha256") != digest:
-                raise ValueError("Hash checkpoint berbeda dari metadata.")
             if tuple(metadata.get("class_names", ())) != CLASS_NAMES:
                 raise ValueError("Mapping kelas metadata tidak cocok.")
             confidence = float(metadata.get("default_confidence", DEFAULT_CONFIDENCE))
